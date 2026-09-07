@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "小日子",
+    "slug": "little-days",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F5F3EE"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.littledays.babylog",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.littledays.babylog",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#F5F3EE"
+      }
+    },
+    "plugins": [
+      "expo-sqlite",
+      "expo-notifications",
+      "expo-document-picker"
+    ],
+    "web": {
+      "bundler": "metro"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "a5210f78-8729-46d4-82a4-7d1d40d30ac6"
+      }
+    }
+  }
+}

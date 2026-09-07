@@ -1,0 +1,47 @@
+{
+  "name": "little-days",
+  "description": "小日子：单机离线婴儿成长记录",
+  "license": "0BSD",
+  "version": "0.1.0",
+  "main": "index.ts",
+  "dependencies": {
+    "@react-native-community/datetimepicker": "9.1.0",
+    "expo": "~57.0.20",
+    "expo-document-picker": "~57.0.1",
+    "expo-file-system": "~57.0.6",
+    "expo-notifications": "~57.0.17",
+    "expo-sharing": "~57.0.18",
+    "expo-sqlite": "~57.0.2",
+    "expo-status-bar": "~57.0.1",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-svg": "15.15.4",
+    "react-native-web": "~0.21.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^26.4.1",
+    "@types/react": "~19.2.2",
+    "prettier": "^3.9.6",
+    "tsx": "^4.23.13",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test src/*.test.ts",
+    "verify": "npm run typecheck && npm test",
+    "export:ios": "expo export --platform ios",
+    "export:web": "expo export --platform web",
+    "test:browser": "node tests/browser.mjs",
+    "format": "prettier --write App.tsx src tests"
+  },
+  "engines": {
+    "node": "^22.13.0 || >=24.3.0"
+  }
+}
