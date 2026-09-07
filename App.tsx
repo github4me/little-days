@@ -28,6 +28,7 @@ import EntryEditor, { newEntry } from "./src/EntryEditor";
 import GrowthChart, { Metric } from "./src/GrowthChart";
 import Records from "./src/Records";
 import Settings from "./src/Settings";
+import PrivacySupport from "./src/PrivacySupport";
 import { rescheduleAutoFeedReminders } from "./src/reminders";
 import {
   Theme,
@@ -138,6 +139,7 @@ function BabyApp({
     [fatal, setFatal] = useState(""),
     [message, setMessage] = useState(""),
     [tab, setTab] = useState("today"),
+    [settingsPage, setSettingsPage] = useState<"main" | "privacy">("main"),
     [now, setNow] = useState(Date.now()),
     [editor, setEditor] = useState<Entry | null>(null),
     [busy, setBusy] = useState(false),
@@ -830,39 +832,46 @@ function BabyApp({
               </>
             ) : null}
             {tab === "settings" ? (
-              <Settings
-                state={state}
-                avatarUri={avatarUri}
-                onAvatarChange={updateAvatar}
-                onCommit={async (next, recovery) => {
-                  await commit(next, recovery);
-                  if (recovery) setUndo(null);
-                }}
-                darkMode={darkMode}
-                language={language}
-                onLanguageChange={changeLanguage}
-                onDarkMode={async (v) => {
-                  const previous = darkMode;
-                  setDarkMode(v);
-                  try {
-                    await saveTheme(v);
-                  } catch (error) {
-                    setDarkMode(previous);
-                    throw error;
-                  }
-                }}
-              />
+              settingsPage === "privacy" ? (
+                <PrivacySupport onBack={() => setSettingsPage("main")} />
+              ) : (
+                <Settings
+                  state={state}
+                  avatarUri={avatarUri}
+                  onAvatarChange={updateAvatar}
+                  onCommit={async (next, recovery) => {
+                    await commit(next, recovery);
+                    if (recovery) setUndo(null);
+                  }}
+                  darkMode={darkMode}
+                  language={language}
+                  onLanguageChange={changeLanguage}
+                  onOpenPrivacy={() => setSettingsPage("privacy")}
+                  onDarkMode={async (v) => {
+                    const previous = darkMode;
+                    setDarkMode(v);
+                    try {
+                      await saveTheme(v);
+                    } catch (error) {
+                      setDarkMode(previous);
+                      throw error;
+                    }
+                  }}
+                />
+              )
             ) : null}
-            <T
-              style={{
-                fontSize: 10,
-                color: c.muted,
-                textAlign: "center",
-                letterSpacing: 1,
-              }}
-            >
-              陪伴成长 · 不必完美记录
-            </T>
+            {!(tab === "settings" && settingsPage === "privacy") ? (
+              <T
+                style={{
+                  fontSize: 10,
+                  color: c.muted,
+                  textAlign: "center",
+                  letterSpacing: 1,
+                }}
+              >
+                陪伴成长 · 不必完美记录
+              </T>
+            ) : null}
           </ScrollView>
           <SafeAreaView
             edges={["bottom"]}
@@ -886,6 +895,7 @@ function BabyApp({
                   key={key}
                   onPress={() => {
                     setTab(key);
+                    setSettingsPage("main");
                     setMessage("");
                     setDeleting(null);
                   }}

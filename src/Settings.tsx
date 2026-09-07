@@ -36,6 +36,7 @@ export default function Settings({
   onDarkMode,
   language,
   onLanguageChange,
+  onOpenPrivacy,
 }: {
   state: State;
   avatarUri: string | null;
@@ -45,6 +46,7 @@ export default function Settings({
   onDarkMode: (v: boolean) => Promise<void>;
   language: LanguagePreference;
   onLanguageChange: (language: LanguagePreference) => Promise<void>;
+  onOpenPrivacy: () => void;
 }) {
   const c = useContext(Theme);
   const [name, setName] = useState(state.profile.name),
@@ -809,6 +811,26 @@ export default function Settings({
           </View>
         )}
       </Card>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t("隐私与支持")}
+        onPress={onOpenPrivacy}
+        style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+      >
+        <Card>
+          <View style={row}>
+            <View style={{ flex: 1, gap: 3 }}>
+              <T style={{ fontSize: 18, fontWeight: "700" }}>隐私与支持</T>
+              <T style={{ color: c.muted, fontSize: 13 }}>
+                了解本机数据、备份和软件更新
+              </T>
+            </View>
+            <T raw style={{ color: c.primary, fontSize: 22 }}>
+              ›
+            </T>
+          </View>
+        </Card>
+      </Pressable>
       <View style={{ padding: 10, gap: 5 }}>
         <T style={{ color: c.muted, fontSize: 12, textAlign: "center" }}>
           Little Days · 单机离线版

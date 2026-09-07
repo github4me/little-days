@@ -122,6 +122,32 @@ const english: Record<string, string> = {
   自动: "Auto",
   中文: "Chinese",
   简体中文: "Simplified Chinese",
+  隐私与支持: "Privacy & support",
+  "了解本机数据、备份和软件更新":
+    "Learn about on-device data, backups, and updates",
+  返回我的: "Back to More",
+  了解数据如何留在本机: "See how your data stays on this device",
+  "你的数据，由你掌控": "Your data stays with you",
+  "小日子是一款离线记录工具：我们不提供账号、服务器或云同步。":
+    "Little Days is an offline journal: we do not provide accounts, servers, or cloud sync.",
+  本机记录: "On-device records",
+  "宝宝档案、照护记录、主题、语言和提醒设定都保存在这台设备上。":
+    "Baby profiles, care records, theme, language, and reminder settings stay on this device.",
+  宝宝照片: "Baby photos",
+  "只有在你主动选择照片时才会请求相册权限。头像会复制到本机，可随时在宝宝档案中移除。":
+    "Photo access is requested only when you choose a photo. The avatar is copied on-device and can be removed from the baby profile at any time.",
+  本地提醒: "Local reminders",
+  "照护提醒由手机本地安排，不会将提醒内容上传到服务器。":
+    "Care reminders are scheduled locally on your phone. Their content is not uploaded to a server.",
+  备份与删除: "Backups and deletion",
+  "备份文件只会在你主动导出和分享时离开应用。删除应用会移除设备上的本机数据，请先导出备份。":
+    "Backup files leave the app only when you choose to export and share them. Deleting the app removes its on-device data, so export first.",
+  软件更新: "Software updates",
+  "应用会安全检查更新。更新服务可能收到设备系统版本和随机安装标记，但不包含宝宝记录或照片。":
+    "The app securely checks for updates. The update service may receive the operating-system version and a random installation token, never baby records or photos.",
+  "需要帮助？": "Need help?",
+  "这款应用可离线使用，无需账号。正式发布后，App Store 页面会提供支持方式和完整隐私政策链接。":
+    "This app works offline without an account. Its App Store page will provide support details and a full privacy-policy link before public release.",
   照护提醒: "Care reminders",
   "跟随模式会在每次保存喂奶后，按最新开始时间安排下一次提醒。":
     "Follow mode schedules the next reminder from the latest saved feed start time.",

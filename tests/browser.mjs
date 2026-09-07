@@ -300,6 +300,14 @@ assert.ok(
   languageOptions.every((box) => Math.abs(box.y - languageOptions[0].y) < 1),
   "language choices should stay on one row",
 );
+await page
+  .getByRole("button", { name: "Privacy & support", exact: true })
+  .click();
+await page.getByText("Your data stays with you", { exact: true }).waitFor();
+await page.getByText("Software updates", { exact: true }).waitFor();
+await assertNoUntranslatedChinese("Privacy & support");
+await page.getByRole("button", { name: "Back to More", exact: true }).click();
+await page.getByText("Care reminders", { exact: true }).waitFor();
 await page.screenshot({
   path: path.join(
     process.env.TEMP ?? "docs",
