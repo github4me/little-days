@@ -1,5 +1,7 @@
 # 小日子 · Little Days
 
+[English](README.en.md) | 简体中文
+
 婴儿成长记录的单机离线版（Expo / React Native / TypeScript）。Windows PC 开发，iPhone 真机使用。不需要账号、后端或共享服务；仅在选择宝宝头像时请求相册访问。
 
 ## 已实现
