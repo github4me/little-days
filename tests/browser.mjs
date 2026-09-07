@@ -263,7 +263,21 @@ assert.ok(
   ),
   "profile choices should be icon cards on one row",
 );
-await page.getByRole("switch", { name: "夜间模式", exact: true }).click();
+const nightModeSwitch = page.getByRole("switch", {
+  name: "夜间模式",
+  exact: true,
+});
+const nightModeBox = await nightModeSwitch.boundingBox();
+assert.ok(nightModeBox);
+assert.ok(
+  nightModeBox.x + nightModeBox.width <= 370,
+  "night mode switch should fit inside the settings card",
+);
+await nightModeSwitch.click();
+assert.equal(
+  await page.evaluate(() => localStorage.getItem("little-days-v1-dark")),
+  "true",
+);
 await page.getByRole("button", { name: "English", exact: true }).click();
 await page.getByText("Care reminders", { exact: true }).waitFor();
 assert.equal(await page.getByText("● This device", { exact: true }).count(), 0);
@@ -308,9 +322,22 @@ await page.screenshot({
     "little-days-growth-picker-preview.png",
   ),
 });
+await page.getByRole("button", { name: "+ Measure", exact: true }).click();
+await page.getByText("Growth measurement", { exact: true }).waitFor();
+await page
+  .getByText("Enter at least one value; decimals are kept as measured.", {
+    exact: true,
+  })
+  .waitFor();
+for (const label of ["Weight · kg", "Length · cm", "Head · cm"])
+  await page.getByLabel(label, { exact: true }).waitFor();
+await assertNoUntranslatedChinese("Growth measurement editor");
+await page.getByLabel("Close editor", { exact: true }).click();
 await page.getByRole("tab", { name: "Records", exact: true }).click();
 await page.getByText("Last 7 days", { exact: true }).waitFor();
 await assertNoUntranslatedChinese("Records");
+await page.getByRole("button", { name: "Diaper", exact: true }).click();
+await page.getByText("1 changes · 1 pee · 1 poo", { exact: true }).waitFor();
 await page.setViewportSize({ width: 340, height: 740 });
 await page.getByRole("tab", { name: "Growth", exact: true }).click();
 await page.getByText("Growth charts", { exact: true }).waitFor();

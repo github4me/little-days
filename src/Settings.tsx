@@ -379,18 +379,20 @@ export default function Settings({
         </View>
       </Card>
       <Card>
-        <View style={row}>
-          <View>
+        <View style={[row, { alignItems: "center" }]}>
+          <View style={{ flex: 1, minWidth: 0 }}>
             <T style={{ fontSize: 18, fontWeight: "700" }}>夜间模式</T>
             <T style={{ color: c.muted, fontSize: 13 }}>柔和配色，夜里也舒适</T>
           </View>
-          <Switch
-            accessibilityLabel={t("夜间模式")}
-            value={darkMode}
-            onValueChange={onDarkMode}
-            disabled={busy}
-            trackColor={{ true: c.primary }}
-          />
+          <View style={{ flexShrink: 0, alignItems: "flex-end" }}>
+            <Switch
+              accessibilityLabel={t("夜间模式")}
+              value={darkMode}
+              onValueChange={onDarkMode}
+              disabled={busy}
+              trackColor={{ true: c.primary }}
+            />
+          </View>
         </View>
       </Card>
       <Card>

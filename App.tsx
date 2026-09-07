@@ -834,12 +834,18 @@ function BabyApp({
                 darkMode={darkMode}
                 language={language}
                 onLanguageChange={changeLanguage}
-                onDarkMode={(v) =>
+                onDarkMode={(v) => {
+                  const previous = darkMode;
+                  setDarkMode(v);
                   void act(async () => {
-                    await saveTheme(v);
-                    setDarkMode(v);
-                  })
-                }
+                    try {
+                      await saveTheme(v);
+                    } catch (error) {
+                      setDarkMode(previous);
+                      throw error;
+                    }
+                  });
+                }}
               />
             ) : null}
             <T

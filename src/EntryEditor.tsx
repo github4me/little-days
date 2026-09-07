@@ -554,7 +554,7 @@ export default function EntryEditor({
                 <View style={s.section}>
                   {label("测量数据")}
                   <Text style={[s.hint, { color: muted, marginBottom: 14 }]}>
-                    至少填写一项；保留实际测量的小数。
+                    {t("至少填写一项；保留实际测量的小数。")}
                   </Text>
                   {(
                     [
@@ -566,7 +566,7 @@ export default function EntryEditor({
                     <View key={text} style={{ marginBottom: 15 }}>
                       {label(text)}
                       <TextInput
-                        accessibilityLabel={text}
+                        accessibilityLabel={t(text)}
                         editable={!busy}
                         value={value}
                         onChangeText={update}
