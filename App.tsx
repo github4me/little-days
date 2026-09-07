@@ -29,6 +29,7 @@ import EntryEditor, { newEntry } from "./src/EntryEditor";
 import GrowthChart, { Metric } from "./src/GrowthChart";
 import Records from "./src/Records";
 import Settings from "./src/Settings";
+import { rescheduleAutoFeedReminders } from "./src/reminders";
 import {
   Theme,
   light,
@@ -140,6 +141,11 @@ function BabyApp() {
       await saveState(checked, recovery);
       stateRef.current = checked;
       setState(checked);
+      try {
+        await rescheduleAutoFeedReminders(checked.entries);
+      } catch {
+        // Saving a record must not fail just because a previously configured notification cannot refresh.
+      }
     } finally {
       lock.current = false;
       setBusy(false);
@@ -449,38 +455,51 @@ function BabyApp() {
                   style={{
                     backgroundColor: c.hero,
                     borderRadius: 28,
-                    padding: 24,
-                    gap: 17,
+                    paddingHorizontal: 24,
+                    paddingVertical: 20,
+                    gap: 14,
                     overflow: "hidden",
                   }}
                 >
                   <View style={row}>
                     <View style={{ flex: 1 }}>
-                      <T style={{ color: c.heroMuted, fontSize: 12 }}>
+                      <T
+                        style={{
+                          color: c.heroMuted,
+                          fontSize: 12,
+                          lineHeight: 18,
+                        }}
+                      >
                         一点一滴，都是成长
                       </T>
                       <T
                         style={{
                           color: c.heroText,
-                          fontSize: 29,
-                          lineHeight: 40,
+                          fontSize: 28,
+                          lineHeight: 34,
                           fontWeight: "700",
-                          marginTop: 8,
+                          marginTop: 6,
                         }}
                       >
                         {state.profile.name}
                       </T>
                       <Pressable onPress={() => setTab("settings")}>
-                        <T style={{ color: c.heroMuted, fontSize: 13 }}>
+                        <T
+                          style={{
+                            color: c.heroMuted,
+                            fontSize: 13,
+                            lineHeight: 20,
+                          }}
+                        >
                           {ageLabel(state.profile.birthDate, new Date(now))}　›
                         </T>
                       </Pressable>
                     </View>
                     <View
                       style={{
-                        width: 72,
-                        height: 72,
-                        borderRadius: 36,
+                        width: 64,
+                        height: 64,
+                        borderRadius: 32,
                         backgroundColor: c.avatar,
                         alignItems: "center",
                         justifyContent: "center",
@@ -488,8 +507,8 @@ function BabyApp() {
                     >
                       <T
                         style={{
-                          fontSize: 38,
-                          lineHeight: 52,
+                          fontSize: 34,
+                          lineHeight: 42,
                           color: c.heroText,
                         }}
                       >

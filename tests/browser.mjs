@@ -148,6 +148,19 @@ await page
   .getByRole("button", { name: "编辑喂奶", exact: true })
   .first()
   .click();
+const quickAmountButtons = await Promise.all(
+  [60, 90, 120, 150].map((amount) =>
+    page
+      .getByRole("button", { name: `${amount} mL`, exact: true })
+      .boundingBox(),
+  ),
+);
+assert.ok(quickAmountButtons.every(Boolean));
+const quickAmountTop = quickAmountButtons[0].y;
+assert.ok(
+  quickAmountButtons.every((box) => Math.abs(box.y - quickAmountTop) < 1),
+  "quick amount choices should stay on one row",
+);
 await page.getByLabel("实际喝奶量", { exact: true }).fill("110");
 await page.getByRole("button", { name: "保存记录", exact: true }).click();
 await page.getByText("2 次喂奶 · 260 mL · 21分钟", { exact: true }).waitFor();

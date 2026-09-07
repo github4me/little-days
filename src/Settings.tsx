@@ -6,10 +6,13 @@ import { exportBackup, importBackup } from "./backup";
 import { loadRecovery } from "./storage";
 import {
   Reminder,
+  addAutoFeedReminder,
   addReminder,
   cancelReminder,
   listReminders,
 } from "./reminders";
+
+type ReminderMode = "once" | "daily" | "after-feed";
 
 export default function Settings({
   state,
@@ -34,7 +37,7 @@ export default function Settings({
   const [pending, setPending] = useState<State | null>(null),
     [source, setSource] = useState("备份文件");
   const [reminders, setReminders] = useState<Reminder[]>([]);
-  const [mode, setMode] = useState("once"),
+  const [mode, setMode] = useState<ReminderMode>("once"),
     [minutes, setMinutes] = useState("120"),
     [dailyTime, setDailyTime] = useState("09:00"),
     [kind, setKind] = useState("喂养"),
@@ -175,7 +178,9 @@ export default function Settings({
       <Card>
         <T style={{ fontSize: 18, fontWeight: "700" }}>照护提醒</T>
         <T style={{ color: c.muted, fontSize: 13 }}>
-          按自己的需要设置。间隔提醒从现在算起，只提醒一次；记录喂养后不会自动重置。
+          {kind === "喂养"
+            ? "可随最新喂养自动重置，或只提醒一次。每天固定时间提醒保持不变。"
+            : "按自己的需要设置。间隔提醒从现在算起，只提醒一次。"}
         </T>
         {Platform.OS === "web" ? (
           <T style={{ color: c.muted }}>
@@ -186,7 +191,11 @@ export default function Settings({
             <View pointerEvents={busy ? "none" : "auto"} style={{ gap: 13 }}>
               <Chips
                 value={kind}
-                onChange={setKind}
+                onChange={(nextKind) => {
+                  setKind(nextKind);
+                  if (nextKind !== "喂养" && mode === "after-feed")
+                    setMode("once");
+                }}
                 options={["喂养", "换尿布", "睡眠"].map((value) => ({
                   value,
                   label: value,
@@ -201,27 +210,37 @@ export default function Settings({
               />
               <Chips
                 value={mode}
-                onChange={setMode}
-                options={[
-                  { label: "稍后提醒一次", value: "once" },
-                  { label: "每天固定时间", value: "daily" },
-                ]}
+                onChange={(nextMode) => setMode(nextMode as ReminderMode)}
+                options={
+                  kind === "喂养"
+                    ? [
+                        { label: "随最新喂养", value: "after-feed" },
+                        { label: "仅提醒一次", value: "once" },
+                        { label: "每天固定时间", value: "daily" },
+                      ]
+                    : [
+                        { label: "稍后提醒一次", value: "once" },
+                        { label: "每天固定时间", value: "daily" },
+                      ]
+                }
               />
-              {mode === "once" ? (
-                <Field
-                  label="多少分钟后"
-                  value={minutes}
-                  onChange={setMinutes}
-                  keyboardType="number-pad"
-                  placeholder="120"
-                />
-              ) : (
+              {mode === "daily" ? (
                 <Field
                   label="每天当地时间 · HH:mm"
                   value={dailyTime}
                   onChange={setDailyTime}
                   placeholder="09:00"
                   maxLength={5}
+                />
+              ) : (
+                <Field
+                  label={
+                    mode === "after-feed" ? "喂养开始后多少分钟" : "多少分钟后"
+                  }
+                  value={minutes}
+                  onChange={setMinutes}
+                  keyboardType="number-pad"
+                  placeholder="120"
                 />
               )}
               <View style={row}>
@@ -239,21 +258,34 @@ export default function Settings({
               disabled={busy}
               onPress={() =>
                 run(async () => {
-                  if (mode === "once" && !minutes.trim())
+                  if (mode !== "daily" && !minutes.trim())
                     throw new Error("请填写提醒间隔");
                   if (
                     mode === "daily" &&
                     !/^([01]\d|2[0-3]):[0-5]\d$/.test(dailyTime.trim())
                   )
                     throw new Error("时间格式应为 HH:mm");
-                  await addReminder(
-                    title.trim() || `${kind}提醒`,
-                    Number(minutes),
-                    mode === "daily" ? dailyTime.trim() : undefined,
-                    silent,
-                  );
+                  const reminderTitle = title.trim() || `${kind}提醒`;
+                  if (mode === "after-feed")
+                    await addAutoFeedReminder(
+                      reminderTitle,
+                      Number(minutes),
+                      silent,
+                      state.entries,
+                    );
+                  else
+                    await addReminder(
+                      reminderTitle,
+                      Number(minutes),
+                      mode === "daily" ? dailyTime.trim() : undefined,
+                      silent,
+                    );
                   await refresh();
-                  setMessage("提醒已添加");
+                  setMessage(
+                    mode === "after-feed"
+                      ? "提醒已添加；保存下一次喂养后会自动重置"
+                      : "提醒已添加",
+                  );
                 })
               }
             />

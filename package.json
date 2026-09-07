@@ -38,7 +38,7 @@
     "test": "node --import tsx --test src/*.test.ts",
     "verify": "npm run typecheck && npm test",
     "export:ios": "expo export --platform ios",
-    "export:web": "expo export --platform web",
+    "export:web": "expo export --platform web --output-dir dist-web",
     "test:browser": "node tests/browser.mjs",
     "format": "prettier --write App.tsx src tests"
   },
