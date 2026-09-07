@@ -2,8 +2,23 @@ import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import type { Entry } from "./domain";
 import { feedReminderTime } from "./feedReminder";
+import {
+  settingsFromReminderData,
+  type ReminderKind,
+  type ReminderSettings,
+} from "./reminderSettings";
+import {
+  clearAutoFeedReminder,
+  loadAutoFeedReminder,
+  saveAutoFeedReminder,
+} from "./storage";
 
-export type Reminder = { id: string; title: string; detail: string };
+export type Reminder = {
+  id: string;
+  title: string;
+  detail: string;
+  settings?: ReminderSettings;
+};
 const autoFeedMode = "after-feed";
 
 Notifications.setNotificationHandler({
@@ -59,7 +74,9 @@ async function scheduleAutoFeedReminder(
       data: {
         detail,
         reminderMode: autoFeedMode,
+        reminderKind: "喂养",
         minutes,
+        dailyTime: "",
         silent,
       },
     },
@@ -72,14 +89,23 @@ async function scheduleAutoFeedReminder(
 }
 
 export async function listReminders(): Promise<Reminder[]> {
-  return (await Notifications.getAllScheduledNotificationsAsync()).map((n) => ({
-    id: n.identifier,
-    title: n.content.title ?? "照护提醒",
-    detail: String(n.content.data?.detail ?? ""),
-  }));
+  return (await Notifications.getAllScheduledNotificationsAsync()).map((n) => {
+    const title = n.content.title ?? "照护提醒";
+    return {
+      id: n.identifier,
+      title,
+      detail: String(n.content.data?.detail ?? ""),
+      settings: settingsFromReminderData(title, n.content.data),
+    };
+  });
 }
 
 export async function cancelReminder(id: string) {
+  const reminder = (
+    await Notifications.getAllScheduledNotificationsAsync()
+  ).find((item) => item.identifier === id);
+  if (reminder?.content.data?.reminderMode === autoFeedMode)
+    await clearAutoFeedReminder();
   await Notifications.cancelScheduledNotificationAsync(id);
 }
 
@@ -88,6 +114,7 @@ export async function addReminder(
   minutes: number,
   dailyTime?: string,
   silent = true,
+  kind: ReminderKind = "喂养",
 ) {
   const channelId = await prepareChannel(silent);
   await requirePermission();
@@ -119,7 +146,14 @@ export async function addReminder(
       title,
       body: "按宝宝当下的需要安排照护。",
       sound: silent ? false : "default",
-      data: { detail },
+      data: {
+        detail,
+        reminderMode: dailyTime ? "daily" : "once",
+        reminderKind: kind,
+        minutes,
+        dailyTime: dailyTime ?? "",
+        silent,
+      },
     },
     trigger,
   });
@@ -135,27 +169,43 @@ export async function addAutoFeedReminder(
   const time = feedReminderTime(entries, minutes);
   if (time === null) throw new Error("请先保存一条喂养记录，再启用自动提醒");
   await requirePermission();
-  await scheduleAutoFeedReminder(title, minutes, silent, time);
+  await saveAutoFeedReminder({
+    kind: "喂养",
+    mode: "after-feed",
+    title,
+    minutes,
+    dailyTime: "",
+    silent,
+  });
+  await rescheduleAutoFeedReminders(entries);
 }
 
 export async function rescheduleAutoFeedReminders(entries: Entry[]) {
   const scheduled = await Notifications.getAllScheduledNotificationsAsync();
-  for (const reminder of scheduled) {
-    const data = reminder.content.data;
-    if (data?.reminderMode !== autoFeedMode) continue;
-    const minutes = Number(data.minutes);
-    if (!Number.isFinite(minutes) || minutes < 1 || minutes > 10080) continue;
-    const time = feedReminderTime(entries, minutes);
-    if (time === null) {
-      await Notifications.cancelScheduledNotificationAsync(reminder.identifier);
-      continue;
-    }
+  const automatic = scheduled.filter(
+    (reminder) => reminder.content.data?.reminderMode === autoFeedMode,
+  );
+  const legacySettings = automatic
+    .map((reminder) =>
+      settingsFromReminderData(
+        reminder.content.title ?? "喂养提醒",
+        reminder.content.data,
+      ),
+    )
+    .find((settings) => settings?.mode === "after-feed");
+  const storedSettings = await loadAutoFeedReminder();
+  const settings = storedSettings ?? legacySettings;
+  if (!settings) return;
+  if (!storedSettings && legacySettings)
+    await saveAutoFeedReminder(legacySettings);
+  const time = feedReminderTime(entries, settings.minutes);
+  if (time !== null)
     await scheduleAutoFeedReminder(
-      reminder.content.title ?? "喂养提醒",
-      minutes,
-      data.silent === true,
+      settings.title,
+      settings.minutes,
+      settings.silent,
       time,
     );
+  for (const reminder of automatic)
     await Notifications.cancelScheduledNotificationAsync(reminder.identifier);
-  }
 }

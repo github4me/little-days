@@ -2,9 +2,17 @@ import React, { useContext } from "react";
 import { View } from "react-native";
 import Svg, { Path, Line, Circle, Text as SvgText } from "react-native-svg";
 import { Entry, State } from "./domain";
-import { referenceSeries } from "./growth";
-import { T, Theme } from "./ui";
-export type Metric = "weight" | "length" | "head";
+import { referenceSeries, type GrowthMetric } from "./growth";
+import { dark, T, Theme } from "./ui";
+
+export type Metric = GrowthMetric | "all";
+
+const labels: Record<GrowthMetric, string> = {
+  weight: "体重 kg",
+  length: "身长 cm",
+  head: "头围 cm",
+};
+
 function ageMonths(birth: string, instant: string) {
   const d = new Date(instant);
   const days =
@@ -13,6 +21,151 @@ function ageMonths(birth: string, instant: string) {
     86400000;
   return days / 30.4375;
 }
+
+function pointsFor(entries: Entry[], birth: string, metric: GrowthMetric) {
+  return entries
+    .filter((e) => e.type === "growth" && e[metric] !== undefined)
+    .map((e) => ({
+      month: ageMonths(birth, e.start),
+      value: e[metric]!,
+      id: e.id,
+    }))
+    .filter((e) => e.month >= 0)
+    .sort((a, b) => a.month - b.month);
+}
+
+function GrowthPlot({
+  entries,
+  profile,
+  metric,
+  color,
+  compact = false,
+  showReferences = true,
+}: {
+  entries: Entry[];
+  profile: State["profile"];
+  metric: GrowthMetric;
+  color: string;
+  compact?: boolean;
+  showReferences?: boolean;
+}) {
+  const c = useContext(Theme);
+  const points = pointsFor(entries, profile.birthDate, metric);
+  const maxMonth = Math.max(
+    3,
+    Math.ceil(Math.max(0, ...points.map((point) => point.month))),
+  );
+  const refs = showReferences
+    ? referenceSeries(metric, profile.sex, Math.min(24, maxMonth))
+    : [];
+  const values = [
+    ...points.map((point) => point.value),
+    ...refs.flatMap((point) => [point.p3, point.p97]),
+  ];
+  if (!values.length)
+    return (
+      <View
+        style={{ height: compact ? 94 : undefined, justifyContent: "center" }}
+      >
+        <T style={{ color: c.muted, fontSize: 12 }}>
+          还没有{labels[metric]}记录
+        </T>
+      </View>
+    );
+
+  const min = Math.floor(Math.min(...values) * 0.9);
+  const max = Math.ceil(Math.max(...values) * 1.08);
+  const range = Math.max(1, max - min);
+  const height = compact ? 124 : 240;
+  const top = compact ? 12 : 25;
+  const bottom = compact ? 86 : 190;
+  const axisLabelY = compact ? 108 : 216;
+  const x = (month: number) => 42 + (month / maxMonth) * 272;
+  const y = (value: number) =>
+    bottom - ((value - min) / range) * (bottom - top);
+  const curve = (items: { month: number; value: number }[]) =>
+    items
+      .map(
+        (point, index) =>
+          `${index ? "L" : "M"}${x(point.month)},${y(point.value)}`,
+      )
+      .join(" ");
+
+  return (
+    <Svg
+      width="100%"
+      height={height}
+      viewBox={`0 0 340 ${height}`}
+      accessibilityLabel={`${labels[metric]}生长曲线，详细数值见下方记录`}
+    >
+      {[0, 1, 2, 3].map((index) => {
+        const value = min + (index * range) / 3;
+        return (
+          <React.Fragment key={index}>
+            <Line
+              x1={42}
+              x2={314}
+              y1={y(value)}
+              y2={y(value)}
+              stroke={c.line}
+            />
+            <SvgText
+              x={34}
+              y={y(value) + 4}
+              textAnchor="end"
+              fill={c.muted}
+              fontSize={compact ? 9 : 10}
+            >
+              {value.toFixed(metric === "weight" ? 1 : 0)}
+            </SvgText>
+          </React.Fragment>
+        );
+      })}
+      {showReferences
+        ? (["p3", "p15", "p50", "p85", "p97"] as const).map((key) => (
+            <Path
+              key={key}
+              d={curve(
+                refs.map((point) => ({
+                  month: point.months,
+                  value: point[key],
+                })),
+              )}
+              fill="none"
+              stroke={key === "p50" ? "#8EAED0" : c.line}
+              strokeWidth={key === "p50" ? 2 : 1.2}
+              strokeDasharray={key === "p50" ? undefined : "4 4"}
+            />
+          ))
+        : null}
+      <Path d={curve(points)} fill="none" stroke={color} strokeWidth={3} />
+      {points.map((point) => (
+        <Circle
+          key={point.id}
+          cx={x(point.month)}
+          cy={y(point.value)}
+          r={4}
+          fill={color}
+          stroke={c.card}
+          strokeWidth={2}
+        />
+      ))}
+      {[0, 1, 2, 3].map((index) => (
+        <SvgText
+          key={index}
+          x={x((index * maxMonth) / 3)}
+          y={axisLabelY}
+          fill={c.muted}
+          fontSize={compact ? 10 : 11}
+          textAnchor="middle"
+        >
+          {((index * maxMonth) / 3).toFixed(0)}月
+        </SvgText>
+      ))}
+    </Svg>
+  );
+}
+
 export default function GrowthChart({
   entries,
   profile,
@@ -29,102 +182,52 @@ export default function GrowthChart({
         先在「我的」设置出生日期，即可按月龄查看曲线。
       </T>
     );
-  const points = entries
-    .filter((e) => e.type === "growth" && e[metric] !== undefined)
-    .map((e) => ({
-      month: ageMonths(profile.birthDate, e.start),
-      value: e[metric]!,
-      id: e.id,
-    }))
-    .filter((e) => e.month >= 0)
-    .sort((a, b) => a.month - b.month);
-  const maxMonth = Math.max(
-    3,
-    Math.ceil(Math.max(0, ...points.map((p) => p.month))),
-  );
-  const refs = referenceSeries(metric, profile.sex, Math.min(24, maxMonth));
-  const values = [
-    ...points.map((p) => p.value),
-    ...refs.flatMap((r) => [r.p3, r.p97]),
-  ];
-  if (!values.length)
+
+  const colors =
+    c === dark
+      ? { weight: "#A8D6F5", length: "#F2AF94", head: "#C7B7FF" }
+      : { weight: "#34759D", length: "#C97962", head: "#7565A5" };
+
+  if (metric === "all")
     return (
-      <T style={{ color: c.muted }}>添加测量记录，或设置性别查看参考曲线。</T>
+      <View style={{ gap: 10 }}>
+        {(["weight", "length", "head"] as GrowthMetric[]).map((item) => (
+          <View
+            key={item}
+            style={{
+              backgroundColor: c.bg,
+              borderRadius: 14,
+              paddingHorizontal: 10,
+              paddingTop: 7,
+            }}
+          >
+            <T style={{ color: colors[item], fontSize: 12, fontWeight: "700" }}>
+              ● {labels[item]}
+            </T>
+            <GrowthPlot
+              entries={entries}
+              profile={profile}
+              metric={item}
+              color={colors[item]}
+              compact
+              showReferences={false}
+            />
+          </View>
+        ))}
+        <T style={{ color: c.muted, fontSize: 12 }}>
+          三项曲线按各自单位缩放；切换到单项可查看 WHO 参考。
+        </T>
+      </View>
     );
-  const min = Math.floor(Math.min(...values) * 0.9),
-    max = Math.ceil(Math.max(...values) * 1.08),
-    range = Math.max(1, max - min);
-  const x = (m: number) => 42 + (m / maxMonth) * 272,
-    y = (v: number) => 190 - ((v - min) / range) * 165;
-  const curve = (items: { month: number; value: number }[]) =>
-    items
-      .map((p, i) => `${i ? "L" : "M"}${x(p.month)},${y(p.value)}`)
-      .join(" ");
+
   return (
     <View>
-      <Svg
-        width="100%"
-        height={240}
-        viewBox="0 0 340 240"
-        accessibilityLabel="生长曲线，详细数值见下方记录"
-      >
-        {[0, 1, 2, 3].map((i) => {
-          const v = min + (i * range) / 3;
-          return (
-            <React.Fragment key={i}>
-              <Line x1={42} x2={314} y1={y(v)} y2={y(v)} stroke={c.line} />
-              <SvgText
-                x={34}
-                y={y(v) + 4}
-                textAnchor="end"
-                fill={c.muted}
-                fontSize={10}
-              >
-                {v.toFixed(metric === "weight" ? 1 : 0)}
-              </SvgText>
-            </React.Fragment>
-          );
-        })}
-        {(["p3", "p15", "p50", "p85", "p97"] as const).map((k) => (
-          <Path
-            key={k}
-            d={curve(refs.map((r) => ({ month: r.months, value: r[k] })))}
-            fill="none"
-            stroke={k === "p50" ? "#8EAED0" : c.line}
-            strokeWidth={k === "p50" ? 2 : 1.2}
-            strokeDasharray={k === "p50" ? undefined : "4 4"}
-          />
-        ))}
-        <Path
-          d={curve(points)}
-          fill="none"
-          stroke={c.primary}
-          strokeWidth={3}
-        />
-        {points.map((p) => (
-          <Circle
-            key={p.id}
-            cx={x(p.month)}
-            cy={y(p.value)}
-            r={4}
-            fill={c.primary}
-            stroke={c.card}
-            strokeWidth={2}
-          />
-        ))}
-        {[0, 1, 2, 3].map((i) => (
-          <SvgText
-            key={i}
-            x={x((i * maxMonth) / 3)}
-            y={216}
-            fill={c.muted}
-            fontSize={11}
-            textAnchor="middle"
-          >
-            {((i * maxMonth) / 3).toFixed(0)}月
-          </SvgText>
-        ))}
-      </Svg>
+      <GrowthPlot
+        entries={entries}
+        profile={profile}
+        metric={metric}
+        color={c.primary}
+      />
       <T style={{ color: c.muted, fontSize: 12 }}>
         ● 宝宝实测　— WHO P50　┄ P3 / P15 / P85 / P97
       </T>

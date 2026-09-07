@@ -1,5 +1,9 @@
 import * as SQLite from "expo-sqlite";
 import { initialState, State, validateState } from "./domain";
+import {
+  parseReminderSettings,
+  type ReminderSettings,
+} from "./reminderSettings";
 let database: ReturnType<typeof SQLite.openDatabaseAsync> | undefined;
 async function db() {
   if (!database)
@@ -70,5 +74,84 @@ export async function saveTheme(dark: boolean) {
     "INSERT OR REPLACE INTO app_data (key,value) VALUES (?,?)",
     "dark",
     String(dark),
+  );
+}
+export async function loadReminderSettings(): Promise<ReminderSettings | null> {
+  const row = await (
+    await db()
+  ).getFirstAsync<{ value: string }>(
+    "SELECT value FROM app_data WHERE key = ?",
+    "reminder-settings",
+  );
+  try {
+    return row ? parseReminderSettings(JSON.parse(row.value)) : null;
+  } catch {
+    return null;
+  }
+}
+export async function saveReminderSettings(settings: ReminderSettings) {
+  const checked = parseReminderSettings(settings);
+  if (!checked) throw new Error("提醒设置无效");
+  await (
+    await db()
+  ).runAsync(
+    "INSERT OR REPLACE INTO app_data (key,value) VALUES (?,?)",
+    "reminder-settings",
+    JSON.stringify(checked),
+  );
+}
+export async function loadAutoFeedReminder(): Promise<ReminderSettings | null> {
+  const row = await (
+    await db()
+  ).getFirstAsync<{ value: string }>(
+    "SELECT value FROM app_data WHERE key = ?",
+    "auto-feed-reminder",
+  );
+  try {
+    const settings = row ? parseReminderSettings(JSON.parse(row.value)) : null;
+    return settings?.kind === "喂养" && settings.mode === "after-feed"
+      ? settings
+      : null;
+  } catch {
+    return null;
+  }
+}
+export async function saveAutoFeedReminder(settings: ReminderSettings) {
+  const checked = parseReminderSettings(settings);
+  if (checked?.kind !== "喂养" || checked.mode !== "after-feed")
+    throw new Error("跟随喂养设置无效");
+  await (
+    await db()
+  ).runAsync(
+    "INSERT OR REPLACE INTO app_data (key,value) VALUES (?,?)",
+    "auto-feed-reminder",
+    JSON.stringify(checked),
+  );
+}
+export async function clearAutoFeedReminder() {
+  await (
+    await db()
+  ).runAsync("DELETE FROM app_data WHERE key = ?", "auto-feed-reminder");
+}
+export async function loadAvatarUri(): Promise<string | null> {
+  const row = await (
+    await db()
+  ).getFirstAsync<{ value: string }>(
+    "SELECT value FROM app_data WHERE key = ?",
+    "avatar-uri",
+  );
+  return row && row.value.length <= 2048 ? row.value : null;
+}
+export async function saveAvatarUri(uri: string | null) {
+  const d = await db();
+  if (uri === null) {
+    await d.runAsync("DELETE FROM app_data WHERE key = ?", "avatar-uri");
+    return;
+  }
+  if (!uri || uri.length > 2048) throw new Error("头像地址无效");
+  await d.runAsync(
+    "INSERT OR REPLACE INTO app_data (key,value) VALUES (?,?)",
+    "avatar-uri",
+    uri,
   );
 }

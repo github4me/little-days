@@ -1,6 +1,12 @@
 import type { Entry } from "./domain";
+import type { ReminderSettings } from "./reminderSettings";
 
-export type Reminder = { id: string; title: string; detail: string };
+export type Reminder = {
+  id: string;
+  title: string;
+  detail: string;
+  settings?: ReminderSettings;
+};
 
 export async function listReminders(): Promise<Reminder[]> {
   return [];

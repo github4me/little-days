@@ -2,7 +2,7 @@
   "expo": {
     "name": "小日子",
     "slug": "little-days",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "icon": "./assets/icon.png",
@@ -14,7 +14,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.littledays.babylog",
-      "buildNumber": "2",
+      "buildNumber": "3",
       "runtimeVersion": {
         "policy": "appVersion"
       }
@@ -29,7 +29,15 @@
     "plugins": [
       "expo-sqlite",
       "expo-notifications",
-      "expo-document-picker"
+      "expo-document-picker",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "允许小日子访问照片，以选择宝宝头像。",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ]
     ],
     "web": {
       "bundler": "metro"

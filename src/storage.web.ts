@@ -1,4 +1,8 @@
 import { initialState, State, validateState } from "./domain";
+import {
+  parseReminderSettings,
+  type ReminderSettings,
+} from "./reminderSettings";
 const KEY = "little-days-v1";
 export async function loadState(): Promise<State> {
   const raw = localStorage.getItem(KEY);
@@ -24,4 +28,49 @@ export async function loadTheme(): Promise<boolean | null> {
 }
 export async function saveTheme(dark: boolean) {
   localStorage.setItem(KEY + "-dark", String(dark));
+}
+export async function loadReminderSettings(): Promise<ReminderSettings | null> {
+  try {
+    const raw = localStorage.getItem(KEY + "-reminder-settings");
+    return raw ? parseReminderSettings(JSON.parse(raw)) : null;
+  } catch {
+    return null;
+  }
+}
+export async function saveReminderSettings(settings: ReminderSettings) {
+  const checked = parseReminderSettings(settings);
+  if (!checked) throw new Error("提醒设置无效");
+  localStorage.setItem(KEY + "-reminder-settings", JSON.stringify(checked));
+}
+export async function loadAutoFeedReminder(): Promise<ReminderSettings | null> {
+  try {
+    const raw = localStorage.getItem(KEY + "-auto-feed-reminder");
+    const settings = raw ? parseReminderSettings(JSON.parse(raw)) : null;
+    return settings?.kind === "喂养" && settings.mode === "after-feed"
+      ? settings
+      : null;
+  } catch {
+    return null;
+  }
+}
+export async function saveAutoFeedReminder(settings: ReminderSettings) {
+  const checked = parseReminderSettings(settings);
+  if (checked?.kind !== "喂养" || checked.mode !== "after-feed")
+    throw new Error("跟随喂养设置无效");
+  localStorage.setItem(KEY + "-auto-feed-reminder", JSON.stringify(checked));
+}
+export async function clearAutoFeedReminder() {
+  localStorage.removeItem(KEY + "-auto-feed-reminder");
+}
+export async function loadAvatarUri(): Promise<string | null> {
+  const uri = localStorage.getItem(KEY + "-avatar-uri");
+  return uri && uri.length <= 2048 ? uri : null;
+}
+export async function saveAvatarUri(uri: string | null) {
+  if (uri === null) {
+    localStorage.removeItem(KEY + "-avatar-uri");
+    return;
+  }
+  if (!uri || uri.length > 2048) throw new Error("头像地址无效");
+  localStorage.setItem(KEY + "-avatar-uri", uri);
 }

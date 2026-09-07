@@ -56,7 +56,7 @@ await page.route("http://little-days.test/**", async (route) => {
 });
 
 await page.goto("http://little-days.test/");
-await page.getByText("今天的小日子", { exact: true }).waitFor();
+await page.getByText("宝宝的小日子", { exact: true }).waitFor();
 assert.equal(await page.getByText("最近记录", { exact: true }).count(), 0);
 await page.evaluate(() => {
   const a = new Date();
@@ -118,7 +118,7 @@ await page.evaluate(() => {
   );
 });
 await page.reload();
-await page.getByText("测试宝宝", { exact: true }).waitFor();
+await page.getByText("测试宝宝的小日子", { exact: true }).waitFor();
 await page.evaluate(() => document.fonts.ready);
 await page.screenshot({ path: "docs/home-preview.png" });
 await page.getByRole("tab", { name: "记录", exact: true }).click();
@@ -180,6 +180,12 @@ await page.getByRole("tab", { name: "成长", exact: true }).click();
 assert.equal(await page.getByText("小小里程碑", { exact: true }).count(), 0);
 assert.equal(await page.getByText("日常趋势", { exact: true }).count(), 0);
 await page.getByRole("button", { name: "＋测量", exact: true }).waitFor();
+await page.getByRole("button", { name: "全部", exact: true }).click();
+await page
+  .getByText("三项曲线按各自单位缩放；切换到单项可查看 WHO 参考。", {
+    exact: true,
+  })
+  .waitFor();
 await page.evaluate(() => document.fonts.ready);
 await page.screenshot({ path: "docs/growth-preview.png" });
 assert.equal(
@@ -191,6 +197,9 @@ assert.equal(
   7,
 );
 await page.getByRole("tab", { name: "我的", exact: true }).click();
+assert.equal(await page.getByLabel("宝宝名字", { exact: true }).count(), 0);
+await page.getByRole("button", { name: "展开宝宝档案", exact: true }).click();
+await page.getByLabel("宝宝名字", { exact: true }).waitFor();
 await page.getByRole("switch", { name: "夜间模式", exact: true }).click();
 await page.getByRole("tab", { name: "今天", exact: true }).click();
 await page.evaluate(() => document.fonts.ready);

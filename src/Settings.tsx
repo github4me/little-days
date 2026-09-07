@@ -1,9 +1,14 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
-import { Platform, Switch, View } from "react-native";
+import { Image, Platform, Pressable, Switch, View } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import { State, validateState } from "./domain";
 import { Theme, T, Card, Field, Button, Chips, row, heading } from "./ui";
 import { exportBackup, importBackup } from "./backup";
-import { loadRecovery } from "./storage";
+import {
+  loadRecovery,
+  loadReminderSettings,
+  saveReminderSettings,
+} from "./storage";
 import {
   Reminder,
   addAutoFeedReminder,
@@ -11,16 +16,20 @@ import {
   cancelReminder,
   listReminders,
 } from "./reminders";
-
-type ReminderMode = "once" | "daily" | "after-feed";
+import { type ReminderMode, type ReminderSettings } from "./reminderSettings";
+import { copyAvatarFile, deleteAvatarFile } from "./avatar";
 
 export default function Settings({
   state,
+  avatarUri,
+  onAvatarChange,
   onCommit,
   darkMode,
   onDarkMode,
 }: {
   state: State;
+  avatarUri: string | null;
+  onAvatarChange: (uri: string | null) => Promise<void>;
   onCommit: (next: State, recovery?: boolean) => Promise<void>;
   darkMode: boolean;
   onDarkMode: (v: boolean) => void;
@@ -36,13 +45,22 @@ export default function Settings({
     [message, setMessage] = useState("");
   const [pending, setPending] = useState<State | null>(null),
     [source, setSource] = useState("备份文件");
+  const [profileExpanded, setProfileExpanded] = useState(false);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [mode, setMode] = useState<ReminderMode>("once"),
     [minutes, setMinutes] = useState("120"),
     [dailyTime, setDailyTime] = useState("09:00"),
-    [kind, setKind] = useState("喂养"),
+    [kind, setKind] = useState<ReminderSettings["kind"]>("喂养"),
     [title, setTitle] = useState(""),
     [silent, setSilent] = useState(true);
+  function applyReminderSettings(settings: ReminderSettings) {
+    setKind(settings.kind);
+    setMode(settings.mode);
+    setMinutes(String(settings.minutes));
+    setDailyTime(settings.dailyTime || "09:00");
+    setTitle(settings.title);
+    setSilent(settings.silent);
+  }
   useEffect(() => {
     setName(state.profile.name);
     setBirthDate(state.profile.birthDate);
@@ -51,9 +69,17 @@ export default function Settings({
   useEffect(() => {
     mounted.current = true;
     if (Platform.OS !== "web")
-      listReminders()
-        .then((v) => {
-          if (mounted.current) setReminders(v);
+      Promise.all([listReminders(), loadReminderSettings()])
+        .then(([items, savedSettings]) => {
+          if (!mounted.current) return;
+          setReminders(items);
+          const activeSettings = items.find((item) => item.settings)?.settings;
+          const settings = savedSettings ?? activeSettings;
+          if (settings) {
+            applyReminderSettings(settings);
+            if (!savedSettings)
+              void saveReminderSettings(settings).catch(() => {});
+          }
         })
         .catch((e) => {
           if (mounted.current)
@@ -86,10 +112,7 @@ export default function Settings({
   return (
     <View style={{ gap: 18 }}>
       <View>
-        <T style={heading}>我的</T>
-        <T style={{ color: c.muted, marginTop: 5 }}>
-          属于宝宝，也属于你的小小日常。
-        </T>
+        <T style={{ color: c.muted }}>属于宝宝，也属于你的小小日常。</T>
       </View>
       {!!error && (
         <Card>
@@ -106,59 +129,158 @@ export default function Settings({
         </Card>
       )}
       <Card>
-        <T style={{ fontSize: 18, fontWeight: "700" }}>宝宝档案</T>
-        <View pointerEvents={busy ? "none" : "auto"} style={{ gap: 14 }}>
-          <Field
-            label="宝宝名字"
-            value={name}
-            onChange={setName}
-            maxLength={100}
-            placeholder="宝宝"
-          />
-          <Field
-            label="出生日期 · 可暂不填写"
-            value={birthDate}
-            onChange={setBirthDate}
-            placeholder="YYYY-MM-DD"
-            maxLength={10}
-          />
-          <T style={{ color: c.muted, fontSize: 13 }}>
-            性别 · 用于匹配成长参考曲线
-          </T>
-          <Chips
-            value={sex}
-            onChange={setSex}
-            options={[
-              { label: "男宝宝", value: "male" },
-              { label: "女宝宝", value: "female" },
-              { label: "暂不填写", value: "unspecified" },
-            ]}
-          />
-        </View>
-        <Button
-          label="保存档案"
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={profileExpanded ? "收起宝宝档案" : "展开宝宝档案"}
           disabled={busy}
-          onPress={() =>
-            run(async () => {
-              const next = validateState({
-                ...state,
-                profile: {
-                  name: name.trim(),
-                  birthDate: birthDate.trim(),
-                  sex,
-                },
-              });
-              if (next.profile.birthDate) {
-                const now = new Date(),
-                  today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-                if (next.profile.birthDate > today)
-                  throw new Error("出生日期不能在未来");
+          onPress={() => setProfileExpanded((expanded) => !expanded)}
+          style={({ pressed }) => [row, { opacity: pressed ? 0.7 : 1 }]}
+        >
+          <T style={{ fontSize: 18, fontWeight: "700" }}>宝宝档案</T>
+          <T style={{ color: c.primary, fontSize: 13 }}>
+            {profileExpanded ? "收起　⌃" : "展开　⌄"}
+          </T>
+        </Pressable>
+        {profileExpanded ? (
+          <>
+            <View pointerEvents={busy ? "none" : "auto"} style={{ gap: 14 }}>
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 14 }}
+              >
+                <View
+                  style={{
+                    width: 70,
+                    height: 70,
+                    borderRadius: 35,
+                    backgroundColor: c.avatar,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    overflow: "hidden",
+                  }}
+                >
+                  {avatarUri ? (
+                    <Image
+                      accessibilityLabel="宝宝头像"
+                      resizeMode="cover"
+                      source={{ uri: avatarUri }}
+                      style={{ width: 70, height: 70 }}
+                    />
+                  ) : (
+                    <T style={{ color: c.primary, fontSize: 28 }}>☘</T>
+                  )}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <T style={{ fontWeight: "600" }}>宝宝头像</T>
+                  <T style={{ color: c.muted, fontSize: 12 }}>
+                    仅保存在这台设备，不会上传
+                  </T>
+                </View>
+              </View>
+              {Platform.OS === "web" ? (
+                <T style={{ color: c.muted, fontSize: 12 }}>
+                  网页预览不支持保存本机头像，请在手机安装版中设置。
+                </T>
+              ) : (
+                <View style={{ flexDirection: "row", gap: 10 }}>
+                  <Button
+                    label={avatarUri ? "更换照片" : "选择照片"}
+                    secondary
+                    disabled={busy}
+                    style={{ flex: 1 }}
+                    onPress={() =>
+                      run(async () => {
+                        const result =
+                          await ImagePicker.launchImageLibraryAsync({
+                            mediaTypes: ["images"],
+                            allowsEditing: true,
+                            aspect: [1, 1],
+                            quality: 0.7,
+                          });
+                        if (result.canceled) return;
+                        const nextAvatar = await copyAvatarFile(
+                          result.assets[0].uri,
+                        );
+                        try {
+                          await onAvatarChange(nextAvatar);
+                        } catch (e) {
+                          await deleteAvatarFile(nextAvatar);
+                          throw e;
+                        }
+                        await deleteAvatarFile(avatarUri);
+                        setMessage("宝宝头像已保存到本机");
+                      })
+                    }
+                  />
+                  {avatarUri ? (
+                    <Button
+                      label="移除头像"
+                      secondary
+                      disabled={busy}
+                      style={{ flex: 1 }}
+                      onPress={() =>
+                        run(async () => {
+                          await onAvatarChange(null);
+                          await deleteAvatarFile(avatarUri);
+                          setMessage("宝宝头像已移除");
+                        })
+                      }
+                    />
+                  ) : null}
+                </View>
+              )}
+              <Field
+                label="宝宝名字"
+                value={name}
+                onChange={setName}
+                maxLength={100}
+                placeholder="宝宝"
+              />
+              <Field
+                label="出生日期 · 可暂不填写"
+                value={birthDate}
+                onChange={setBirthDate}
+                placeholder="YYYY-MM-DD"
+                maxLength={10}
+              />
+              <T style={{ color: c.muted, fontSize: 13 }}>
+                性别 · 用于匹配成长参考曲线
+              </T>
+              <Chips
+                value={sex}
+                onChange={setSex}
+                options={[
+                  { label: "男宝宝", value: "male" },
+                  { label: "女宝宝", value: "female" },
+                  { label: "暂不填写", value: "unspecified" },
+                ]}
+              />
+            </View>
+            <Button
+              label="保存档案"
+              disabled={busy}
+              onPress={() =>
+                run(async () => {
+                  const next = validateState({
+                    ...state,
+                    profile: {
+                      name: name.trim(),
+                      birthDate: birthDate.trim(),
+                      sex,
+                    },
+                  });
+                  if (next.profile.birthDate) {
+                    const now = new Date(),
+                      today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+                    if (next.profile.birthDate > today)
+                      throw new Error("出生日期不能在未来");
+                  }
+                  await onCommit(next);
+                  setMessage("宝宝档案已保存");
+                })
               }
-              await onCommit(next);
-              setMessage("宝宝档案已保存");
-            })
-          }
-        />
+            />
+          </>
+        ) : null}
       </Card>
       <Card>
         <View style={row}>
@@ -179,7 +301,7 @@ export default function Settings({
         <T style={{ fontSize: 18, fontWeight: "700" }}>照护提醒</T>
         <T style={{ color: c.muted, fontSize: 13 }}>
           {kind === "喂养"
-            ? "可随最新喂养自动重置，或只提醒一次。每天固定时间提醒保持不变。"
+            ? "跟随模式会在每次保存喂奶后，按最新开始时间安排下一次提醒。"
             : "按自己的需要设置。间隔提醒从现在算起，只提醒一次。"}
         </T>
         {Platform.OS === "web" ? (
@@ -189,18 +311,61 @@ export default function Settings({
         ) : (
           <>
             <View pointerEvents={busy ? "none" : "auto"} style={{ gap: 13 }}>
-              <Chips
-                value={kind}
-                onChange={(nextKind) => {
-                  setKind(nextKind);
-                  if (nextKind !== "喂养" && mode === "after-feed")
-                    setMode("once");
-                }}
-                options={["喂养", "换尿布", "睡眠"].map((value) => ({
-                  value,
-                  label: value,
-                }))}
-              />
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                {[
+                  { value: "喂养", icon: "◒" },
+                  { value: "换尿布", icon: "♧" },
+                  { value: "睡眠", icon: "☾" },
+                ].map(({ value, icon }) => {
+                  const selected = kind === value;
+                  return (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={value}
+                      accessibilityState={{ selected }}
+                      key={value}
+                      onPress={() => {
+                        const next = value as ReminderSettings["kind"];
+                        setKind(next);
+                        if (next !== "喂养" && mode === "after-feed")
+                          setMode("once");
+                      }}
+                      style={({ pressed }) => [
+                        {
+                          flex: 1,
+                          minHeight: 70,
+                          borderRadius: 18,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          backgroundColor: selected ? c.soft : c.card,
+                          borderWidth: 1,
+                          borderColor: selected ? c.primary : c.line,
+                          opacity: pressed ? 0.7 : 1,
+                        },
+                      ]}
+                    >
+                      <T
+                        style={{
+                          color: selected ? c.primary : c.muted,
+                          fontSize: 23,
+                          lineHeight: 27,
+                        }}
+                      >
+                        {icon}
+                      </T>
+                      <T
+                        style={{
+                          color: selected ? c.primary : c.muted,
+                          fontSize: 12,
+                          fontWeight: selected ? "700" : "400",
+                        }}
+                      >
+                        {value}
+                      </T>
+                    </Pressable>
+                  );
+                })}
+              </View>
               <Field
                 label="提醒标题 · 可选"
                 value={title}
@@ -208,22 +373,87 @@ export default function Settings({
                 placeholder={`${kind}提醒`}
                 maxLength={100}
               />
-              <Chips
-                value={mode}
-                onChange={(nextMode) => setMode(nextMode as ReminderMode)}
-                options={
-                  kind === "喂养"
-                    ? [
-                        { label: "随最新喂养", value: "after-feed" },
-                        { label: "仅提醒一次", value: "once" },
-                        { label: "每天固定时间", value: "daily" },
-                      ]
-                    : [
-                        { label: "稍后提醒一次", value: "once" },
-                        { label: "每天固定时间", value: "daily" },
-                      ]
-                }
-              />
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                {(kind === "喂养"
+                  ? [
+                      {
+                        value: "after-feed" as const,
+                        label: "随最新喂养",
+                        shortLabel: "跟随",
+                        icon: "↻",
+                      },
+                      {
+                        value: "once" as const,
+                        label: "仅提醒一次",
+                        shortLabel: "一次",
+                        icon: "◷",
+                      },
+                      {
+                        value: "daily" as const,
+                        label: "每天固定时间",
+                        shortLabel: "每天",
+                        icon: "☀",
+                      },
+                    ]
+                  : [
+                      {
+                        value: "once" as const,
+                        label: "稍后提醒一次",
+                        shortLabel: "一次",
+                        icon: "◷",
+                      },
+                      {
+                        value: "daily" as const,
+                        label: "每天固定时间",
+                        shortLabel: "每天",
+                        icon: "☀",
+                      },
+                    ]
+                ).map(({ value, label, shortLabel, icon }) => {
+                  const selected = mode === value;
+                  return (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={label}
+                      accessibilityState={{ selected }}
+                      key={value}
+                      onPress={() => setMode(value)}
+                      style={({ pressed }) => [
+                        {
+                          flex: 1,
+                          minHeight: 68,
+                          borderRadius: 18,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          backgroundColor: selected ? c.soft : c.card,
+                          borderWidth: 1,
+                          borderColor: selected ? c.primary : c.line,
+                          opacity: pressed ? 0.7 : 1,
+                        },
+                      ]}
+                    >
+                      <T
+                        style={{
+                          color: selected ? c.primary : c.muted,
+                          fontSize: 24,
+                          lineHeight: 28,
+                        }}
+                      >
+                        {icon}
+                      </T>
+                      <T
+                        style={{
+                          color: selected ? c.primary : c.muted,
+                          fontSize: 12,
+                          fontWeight: selected ? "700" : "400",
+                        }}
+                      >
+                        {shortLabel}
+                      </T>
+                    </Pressable>
+                  );
+                })}
+              </View>
               {mode === "daily" ? (
                 <Field
                   label="每天当地时间 · HH:mm"
@@ -266,20 +496,37 @@ export default function Settings({
                   )
                     throw new Error("时间格式应为 HH:mm");
                   const reminderTitle = title.trim() || `${kind}提醒`;
+                  const currentMinutes = Number(minutes);
+                  const settings: ReminderSettings = {
+                    kind,
+                    mode,
+                    title: reminderTitle,
+                    minutes:
+                      mode === "daily" &&
+                      (!Number.isFinite(currentMinutes) ||
+                        currentMinutes < 1 ||
+                        currentMinutes > 10080)
+                        ? 120
+                        : currentMinutes,
+                    dailyTime: mode === "daily" ? dailyTime.trim() : "",
+                    silent,
+                  };
                   if (mode === "after-feed")
                     await addAutoFeedReminder(
                       reminderTitle,
-                      Number(minutes),
+                      settings.minutes,
                       silent,
                       state.entries,
                     );
                   else
                     await addReminder(
                       reminderTitle,
-                      Number(minutes),
+                      settings.minutes,
                       mode === "daily" ? dailyTime.trim() : undefined,
                       silent,
+                      kind,
                     );
+                  await saveReminderSettings(settings);
                   await refresh();
                   setMessage(
                     mode === "after-feed"
@@ -394,8 +641,12 @@ export default function Settings({
               onPress={() =>
                 run(async () => {
                   await onCommit(pending, true);
+                  await onAvatarChange(null);
+                  await deleteAvatarFile(avatarUri);
                   setPending(null);
-                  setMessage("记录已恢复；现有提醒保持不变，请按需检查");
+                  setMessage(
+                    "记录已恢复；头像已移除，现有提醒保持不变，请按需检查",
+                  );
                 })
               }
             />

@@ -5,6 +5,7 @@ import {
   Pressable,
   ActivityIndicator,
   AppState,
+  Image,
   Platform,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
@@ -23,6 +24,8 @@ import {
   loadTheme,
   saveTheme,
   loadRecovery,
+  loadAvatarUri,
+  saveAvatarUri,
 } from "./src/storage";
 import { importBackup } from "./src/backup";
 import EntryEditor, { newEntry } from "./src/EntryEditor";
@@ -97,6 +100,8 @@ function BabyApp() {
   const [darkMode, setDarkMode] = useState(false);
   const c = darkMode ? dark : light;
   const [state, setState] = useState<State | null>(null),
+    [avatarUri, setAvatarUri] = useState<string | null>(null),
+    [avatarFailed, setAvatarFailed] = useState(false),
     [fatal, setFatal] = useState(""),
     [message, setMessage] = useState(""),
     [tab, setTab] = useState("today"),
@@ -111,11 +116,15 @@ function BabyApp() {
   const [metric, setMetric] = useState<Metric>("weight");
   async function init() {
     try {
-      const s = await loadState();
+      const [s, preference, savedAvatarUri] = await Promise.all([
+        loadState(),
+        loadTheme(),
+        loadAvatarUri(),
+      ]);
       stateRef.current = s;
       setState(s);
+      setAvatarUri(savedAvatarUri);
       setFatal("");
-      const preference = await loadTheme();
       if (preference !== null) setDarkMode(preference);
     } catch (e) {
       setFatal(`无法读取本地数据，原数据没有被覆盖。${(e as Error).message}`);
@@ -132,6 +141,7 @@ function BabyApp() {
       sub.remove();
     };
   }, []);
+  useEffect(() => setAvatarFailed(false), [avatarUri]);
   async function commit(next: State, recovery = false) {
     if (lock.current) throw new Error("正在保存，请稍后再试");
     lock.current = true;
@@ -164,6 +174,10 @@ function BabyApp() {
     });
     setEditor(null);
     setMessage("已保存到本机");
+  }
+  async function updateAvatar(uri: string | null) {
+    await saveAvatarUri(uri);
+    setAvatarUri(uri);
   }
   async function act(fn: () => Promise<void>) {
     try {
@@ -370,14 +384,18 @@ function BabyApp() {
                 >
                   LITTLE DAYS · 小日子
                 </T>
-                <T
-                  style={[
-                    heading,
-                    { marginTop: 6, fontSize: 28, lineHeight: 36 },
-                  ]}
-                >
-                  {pageTitles[tab]}
-                </T>
+                {tab !== "settings" ? (
+                  <T
+                    style={[
+                      heading,
+                      { marginTop: 6, fontSize: 28, lineHeight: 36 },
+                    ]}
+                  >
+                    {tab === "today"
+                      ? `${state.profile.name}的小日子`
+                      : pageTitles[tab]}
+                  </T>
+                ) : null}
               </View>
               <View
                 style={{
@@ -472,23 +490,13 @@ function BabyApp() {
                       >
                         一点一滴，都是成长
                       </T>
-                      <T
-                        style={{
-                          color: c.heroText,
-                          fontSize: 28,
-                          lineHeight: 34,
-                          fontWeight: "700",
-                          marginTop: 6,
-                        }}
-                      >
-                        {state.profile.name}
-                      </T>
                       <Pressable onPress={() => setTab("settings")}>
                         <T
                           style={{
                             color: c.heroMuted,
                             fontSize: 13,
                             lineHeight: 20,
+                            marginTop: 5,
                           }}
                         >
                           {ageLabel(state.profile.birthDate, new Date(now))}　›
@@ -503,17 +511,28 @@ function BabyApp() {
                         backgroundColor: c.avatar,
                         alignItems: "center",
                         justifyContent: "center",
+                        overflow: "hidden",
                       }}
                     >
-                      <T
-                        style={{
-                          fontSize: 34,
-                          lineHeight: 42,
-                          color: c.heroText,
-                        }}
-                      >
-                        ☘
-                      </T>
+                      {avatarUri && !avatarFailed ? (
+                        <Image
+                          accessibilityLabel="宝宝头像"
+                          onError={() => setAvatarFailed(true)}
+                          resizeMode="cover"
+                          source={{ uri: avatarUri }}
+                          style={{ width: 64, height: 64, borderRadius: 32 }}
+                        />
+                      ) : (
+                        <T
+                          style={{
+                            fontSize: 34,
+                            lineHeight: 42,
+                            color: c.heroText,
+                          }}
+                        >
+                          ☘
+                        </T>
+                      )}
                     </View>
                   </View>
                   <View style={{ height: 1, backgroundColor: c.heroLine }} />
@@ -670,6 +689,7 @@ function BabyApp() {
                   </View>
                   <Chips
                     options={[
+                      { label: "全部", value: "all" },
                       { label: "体重 kg", value: "weight" },
                       { label: "身长 cm", value: "length" },
                       { label: "头围 cm", value: "head" },
@@ -689,6 +709,8 @@ function BabyApp() {
             {tab === "settings" ? (
               <Settings
                 state={state}
+                avatarUri={avatarUri}
+                onAvatarChange={updateAvatar}
                 onCommit={async (next, recovery) => {
                   await commit(next, recovery);
                   if (recovery) setUndo(null);
