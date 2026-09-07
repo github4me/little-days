@@ -90,7 +90,7 @@ export default function GrowthChart({
             key={k}
             d={curve(refs.map((r) => ({ month: r.months, value: r[k] })))}
             fill="none"
-            stroke={k === "p50" ? "#A3B89C" : c.line}
+            stroke={k === "p50" ? "#8EAED0" : c.line}
             strokeWidth={k === "p50" ? 2 : 1.2}
             strokeDasharray={k === "p50" ? undefined : "4 4"}
           />

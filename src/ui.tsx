@@ -9,24 +9,32 @@ import {
   KeyboardTypeOptions,
 } from "react-native";
 export const light = {
-  bg: "#F5F3EE",
+  bg: "#F4F9FD",
   card: "#FFFFFF",
-  text: "#243B38",
-  muted: "#72817A",
-  line: "#E5E9E1",
-  primary: "#257864",
-  soft: "#E6F0E7",
-  hero: "#183F36",
+  text: "#29475E",
+  muted: "#60798D",
+  line: "#DCE8F1",
+  primary: "#34759D",
+  soft: "#E3F1FB",
+  hero: "#C9E6FA",
+  heroText: "#294E6B",
+  heroMuted: "#476B85",
+  heroLine: "#A8CCE6",
+  avatar: "#FFF5E6",
 };
 export const dark = {
-  bg: "#111E1B",
-  card: "#1E302A",
-  text: "#EFF4E9",
-  muted: "#A2B4A9",
-  line: "#34473F",
-  primary: "#94D2B5",
-  soft: "#2D493D",
-  hero: "#203E34",
+  bg: "#182837",
+  card: "#233A4C",
+  text: "#EDF6FF",
+  muted: "#AEC6D9",
+  line: "#3B5468",
+  primary: "#A8D6F5",
+  soft: "#304F67",
+  hero: "#2C4C66",
+  heroText: "#EDF6FF",
+  heroMuted: "#C1D9EB",
+  heroLine: "#52728B",
+  avatar: "#E1EFF9",
 };
 export const Theme = createContext(light);
 export function T({
@@ -105,7 +113,7 @@ export function Button({
     >
       <T
         style={{
-          color: secondary ? c.text : c === dark ? "#133D2E" : "#FFFFFF",
+          color: secondary ? c.text : c === dark ? "#183C56" : "#FFFFFF",
           fontWeight: "600",
         }}
       >

@@ -9,20 +9,21 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#F5F3EE"
+      "backgroundColor": "#F4F9FD"
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.littledays.babylog",
-      "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+      "buildNumber": "2",
+      "runtimeVersion": {
+        "policy": "appVersion"
       }
     },
     "android": {
       "package": "com.littledays.babylog",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#F5F3EE"
+        "backgroundColor": "#F4F9FD"
       }
     },
     "plugins": [
@@ -37,6 +38,13 @@
       "eas": {
         "projectId": "a5210f78-8729-46d4-82a4-7d1d40d30ac6"
       }
+    },
+    "owner": "expo4chao",
+    "updates": {
+      "url": "https://u.expo.dev/a5210f78-8729-46d4-82a4-7d1d40d30ac6"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
     }
   }
 }

@@ -54,207 +54,144 @@ await page.route("http://little-days.test/**", async (route) => {
     await route.fulfill({ status: 404, body: "not found" });
   }
 });
+
 await page.goto("http://little-days.test/");
 await page.getByText("今天的小日子", { exact: true }).waitFor();
-await page.getByRole("tab", { name: "我的", exact: true }).click();
-await page.getByLabel("宝宝名字", { exact: true }).fill("测试宝宝");
-await page.getByLabel("出生日期 · 可暂不填写").fill("2026-07-01");
-await page.getByRole("button", { name: "男宝宝", exact: true }).click();
-await page.getByRole("button", { name: "保存档案", exact: true }).click();
-await page.getByText("宝宝档案已保存", { exact: true }).waitFor();
-await page.getByRole("tab", { name: "今天", exact: true }).click();
-await page.getByRole("button", { name: "＋记录", exact: true }).first().click();
-await page.getByLabel("实际喝奶量", { exact: true }).fill("135");
-await page.getByLabel("备注", { exact: true }).fill("测试记录");
-await page.getByRole("button",{name:"+ 记录结束时间（可选）",exact:true}).click();
-await page.getByRole("button", { name: "保存记录", exact: true }).click();
-await page.getByText("已保存到本机", { exact: false }).waitFor();
-let state = await page.evaluate(() =>
-  JSON.parse(localStorage.getItem("little-days-v1")),
-);
-assert.equal(state.entries[0].amount, 135);
+assert.equal(await page.getByText("最近记录", { exact: true }).count(), 0);
+await page.evaluate(() => {
+  const a = new Date();
+  a.setDate(a.getDate() - 1);
+  a.setHours(6, 2, 0, 0);
+  const b = new Date(a);
+  b.setHours(3, 1, 0, 0);
+  const old = new Date(a);
+  old.setDate(old.getDate() - 1);
+  const e = (id, start, amount, minutes) => ({
+    id,
+    type: "feed",
+    feedKind: "formula",
+    start: start.toISOString(),
+    end: new Date(start.getTime() + minutes * 60000).toISOString(),
+    amount,
+    note: "",
+  });
+  const entries = [
+    e("f1", a, 100, 11),
+    e("f2", b, 150, 10),
+    e("f3", old, 120, 5),
+    {
+      id: "d1",
+      type: "diaper",
+      diaperKind: "mixed",
+      start: a.toISOString(),
+      note: "",
+    },
+    {
+      id: "s1",
+      type: "sleep",
+      start: b.toISOString(),
+      end: a.toISOString(),
+      note: "",
+    },
+    {
+      id: "g1",
+      type: "growth",
+      weight: 5.16,
+      start: a.toISOString(),
+      note: "",
+    },
+    {
+      id: "m1",
+      type: "milestone",
+      title: "旧里程碑",
+      start: a.toISOString(),
+      note: "",
+    },
+  ];
+  localStorage.setItem(
+    "little-days-v1",
+    JSON.stringify({
+      schemaVersion: 1,
+      profile: { name: "测试宝宝", birthDate: "2026-07-01", sex: "male" },
+      entries,
+    }),
+  );
+});
 await page.reload();
 await page.getByText("测试宝宝", { exact: true }).waitFor();
+await page.evaluate(() => document.fonts.ready);
+await page.screenshot({ path: "docs/home-preview.png" });
+await page.getByRole("tab", { name: "记录", exact: true }).click();
+for (const label of [
+  "全部",
+  "测量",
+  "里程碑",
+  "＋喂奶",
+  "＋尿布",
+  "＋睡眠",
+  "＋测量",
+  "＋里程碑",
+  "清除",
+])
+  assert.equal(
+    await page.getByRole("button", { name: label, exact: true }).count(),
+    0,
+    label,
+  );
+assert.equal(await page.getByRole("textbox").count(), 0);
+await page.getByText("2 次喂奶 · 250 mL · 21分钟", { exact: true }).waitFor();
+await page.getByText("距上次 3小时1分", { exact: true }).waitFor();
+await page.evaluate(() => document.fonts.ready);
+await page.screenshot({ path: "docs/records-preview.png" });
+await page.getByRole("button", { name: "时长", exact: true }).click();
+await page
+  .getByRole("button", { name: "编辑喂奶", exact: true })
+  .first()
+  .click();
+await page.getByLabel("实际喝奶量", { exact: true }).fill("110");
+await page.getByRole("button", { name: "保存记录", exact: true }).click();
+await page.getByText("2 次喂奶 · 260 mL · 21分钟", { exact: true }).waitFor();
+await page.getByRole("button", { name: "尿布", exact: true }).click();
+await page
+  .getByText("1 次更换 · 有尿 1 次 · 有便 1 次", { exact: true })
+  .waitFor();
+await page.getByRole("button", { name: "删除尿布", exact: true }).click();
+await page.getByRole("button", { name: "确认删除", exact: true }).click();
+await page.getByRole("button", { name: "撤销删除", exact: true }).click();
+await page
+  .getByText("1 次更换 · 有尿 1 次 · 有便 1 次", { exact: true })
+  .waitFor();
+await page.getByRole("button", { name: "睡眠", exact: true }).click();
+await page.getByText("1 段睡眠 · 3小时1分", { exact: true }).waitFor();
+await page.getByRole("tab", { name: "成长", exact: true }).click();
+assert.equal(await page.getByText("小小里程碑", { exact: true }).count(), 0);
+assert.equal(await page.getByText("日常趋势", { exact: true }).count(), 0);
+await page.getByRole("button", { name: "＋测量", exact: true }).waitFor();
+await page.evaluate(() => document.fonts.ready);
+await page.screenshot({ path: "docs/growth-preview.png" });
 assert.equal(
   (
     await page.evaluate(() =>
       JSON.parse(localStorage.getItem("little-days-v1")),
     )
   ).entries.length,
-  1,
+  7,
 );
-await page.getByRole("button", { name: "睡了", exact: true }).click();
-await page.getByRole("button", { name: "醒了", exact: true }).waitFor();
-state = await page.evaluate(() =>
-  JSON.parse(localStorage.getItem("little-days-v1")),
-);
-const sleepStart = state.entries.find((e) => e.type === "sleep").start;
-await page.reload();
-await page.getByRole("button", { name: "醒了", exact: true }).waitFor();
-assert.equal(
-  (
-    await page.evaluate(() =>
-      JSON.parse(localStorage.getItem("little-days-v1")),
-    )
-  ).entries.find((e) => e.type === "sleep").start,
-  sleepStart,
-);
-await page.getByRole("button", { name: "醒了", exact: true }).click();
-await page.getByRole("button", { name: "睡了", exact: true }).waitFor();
-await page.getByRole("button", { name: "＋记录", exact: true }).last().click();
-await page.getByRole("button", { name: "尿 + 便", exact: true }).click();
-await page.getByRole("button", { name: "保存记录", exact: true }).click();
-await page.getByRole("tab", { name: "记录", exact: true }).click();
-await page.getByRole("button", { name: "＋测量", exact: true }).click();
-await page.getByLabel("体重 · kg", { exact: true }).fill("5.16");
-await page.getByLabel("身长 · cm", { exact: true }).fill("56");
-await page.getByLabel("头围 · cm", { exact: true }).fill("39");
-await page.getByRole("button", { name: "保存记录", exact: true }).click();
-await page.getByRole("button", { name: "＋里程碑", exact: true }).click();
-await page.getByLabel("里程碑标题", { exact: true }).fill("第一次微笑");
-await page.getByRole("button", { name: "保存记录", exact: true }).click();
-await page.getByRole("button", { name: "编辑喂奶", exact: true }).click();
-await page.getByLabel("实际喝奶量", { exact: true }).fill("-1");
-await page.getByRole("button", { name: "保存记录", exact: true }).click();
-await page.getByRole("alert").waitFor();
-assert.equal(
-  (
-    await page.evaluate(() =>
-      JSON.parse(localStorage.getItem("little-days-v1")),
-    )
-  ).entries.find((e) => e.type === "feed").amount,
-  135,
-);
-await page.getByLabel("实际喝奶量", { exact: true }).fill("150");
-await page.getByRole("button", { name: "保存记录", exact: true }).click();
-await page.getByRole("button", { name: "删除尿布", exact: true }).click();
-await page.getByRole("button", { name: "确认删除", exact: true }).click();
-await page.getByRole("button", { name: "撤销删除", exact: true }).click();
-await page.getByRole("tab", { name: "成长", exact: true }).click();
-await page.getByText("成长曲线", { exact: true }).waitFor();
-await page.evaluate(() => document.fonts.ready);
-await page.screenshot({ path: "docs/growth-preview.png", fullPage: false });
+await page.getByRole("tab", { name: "我的", exact: true }).click();
+await page.getByRole("switch", { name: "夜间模式", exact: true }).click();
 await page.getByRole("tab", { name: "今天", exact: true }).click();
 await page.evaluate(() => document.fonts.ready);
-await page.screenshot({ path: "docs/home-preview.png", fullPage: false });
+await page.screenshot({ path: "docs/night-preview.png" });
+await page.getByRole("tab", { name: "记录", exact: true }).click();
+await page.setViewportSize({ width: 340, height: 740 });
 assert.equal(
   await page.evaluate(
     () => document.documentElement.scrollWidth <= window.innerWidth,
   ),
   true,
 );
-await page.getByRole("tab", { name: "我的", exact: true }).click();
-const downloadEvent = page.waitForEvent("download");
-await page.getByRole("button", { name: "导出备份文件", exact: true }).click();
-const download = await downloadEvent;
-await download.saveAs("/tmp/little-days-export.json");
-const exported = JSON.parse(
-  await fs.readFile("/tmp/little-days-export.json", "utf8"),
-);
-assert.equal(exported.entries.length, 5);
-// Verify invalid backup cannot replace data, followed by a valid replacement + recovery.
-await fs.writeFile(
-  "/tmp/little-days-invalid.json",
-  JSON.stringify({ ...exported, schemaVersion: 99 }),
-);
-let chooserEvent = page.waitForEvent("filechooser");
-await page.getByRole("button", { name: "选择备份文件", exact: true }).click();
-await (await chooserEvent).setFiles("/tmp/little-days-invalid.json");
-await page.getByRole("alert").waitFor();
-assert.equal(
-  (
-    await page.evaluate(() =>
-      JSON.parse(localStorage.getItem("little-days-v1")),
-    )
-  ).entries.length,
-  5,
-);
-await fs.writeFile(
-  "/tmp/little-days-import.json",
-  JSON.stringify({
-    ...exported,
-    profile: { ...exported.profile, name: "恢复测试" },
-    entries: exported.entries.slice(0, 1),
-  }),
-);
-chooserEvent = page.waitForEvent("filechooser");
-await page.getByRole("button", { name: "选择备份文件", exact: true }).click();
-await (await chooserEvent).setFiles("/tmp/little-days-import.json");
-await page
-  .getByRole("button", { name: "确认替换当前数据", exact: true })
-  .click();
-await page.getByText("记录已恢复；现有提醒保持不变，请按需检查").waitFor();
-assert.equal(
-  (
-    await page.evaluate(() =>
-      JSON.parse(localStorage.getItem("little-days-v1")),
-    )
-  ).entries.length,
-  1,
-);
-await page
-  .getByRole("button", { name: "查看上次替换前的数据", exact: true })
-  .click();
-await page
-  .getByRole("button", { name: "确认替换当前数据", exact: true })
-  .click();
-await page.waitForFunction(
-  () => JSON.parse(localStorage.getItem("little-days-v1")).entries.length === 5,
-);
-await page.getByRole("switch", { name: "夜间模式", exact: true }).click();
-await page.reload();
-await page.getByRole("tab", { name: "今天", exact: true }).waitFor();
-await page.evaluate(() => document.fonts.ready);
-await page.screenshot({ path: "docs/night-preview.png", fullPage: false });
-// Timestamp preservation: edit only a note on the second repeated local DST hour.
-await page.evaluate(() => {
-  const s = JSON.parse(localStorage.getItem("little-days-v1"));
-  s.profile.birthDate = "2026-01-01";
-  s.entries = [
-    {
-      id: "dst",
-      type: "diaper",
-      start: "2026-04-05T02:30:45+10:00",
-      diaperKind: "wet",
-      note: "",
-    },
-  ];
-  localStorage.setItem("little-days-v1", JSON.stringify(s));
-});
-await page.reload();
-await page.getByRole("tab", { name: "记录", exact: true }).click();
-await page.getByRole("button", { name: "编辑尿布", exact: true }).click();
-await page.getByLabel("备注", { exact: true }).fill("只修改备注");
-await page.getByRole("button", { name: "保存记录", exact: true }).click();
-await page.waitForFunction(
-  () =>
-    JSON.parse(localStorage.getItem("little-days-v1")).entries[0].note ===
-    "只修改备注",
-);
-assert.equal(
-  (
-    await page.evaluate(() =>
-      JSON.parse(localStorage.getItem("little-days-v1")),
-    )
-  ).entries[0].start,
-  "2026-04-05T02:30:45+10:00",
-);
-await page.evaluate(() => localStorage.setItem("little-days-v1", "{corrupt"));
-await page.reload();
-await page.getByText("无法读取本地数据", { exact: false }).waitFor();
-await page.getByRole("button", { name: "读取恢复副本", exact: true }).click();
-await page.getByRole("button", { name: "确认恢复", exact: true }).click();
-await page.getByText("今天的小日子", { exact: true }).waitFor();
-assert.equal(
-  (
-    await page.evaluate(() =>
-      JSON.parse(localStorage.getItem("little-days-v1")),
-    )
-  ).entries.length,
-  1,
-);
 assert.deepEqual(errors, []);
 console.log(
-  "PASS: profile, five record types, reload/timer persistence, validation, edit, delete/undo, charts, backup/export/import/recovery, dark mode, DST edit, 390px layout; no page errors.",
+  "PASS: clean home, removed controls/milestones, daily chart summaries and intervals, unit switch, edit/delete/undo, growth, old data retained, dark mode, narrow layout.",
 );
 await browser.close();

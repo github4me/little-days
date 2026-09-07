@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { light, dark as night } from "./ui";
 import { Entry, makeId, validateEntry } from "./domain";
 
 const names = {
@@ -91,23 +92,19 @@ export default function EntryEditor({
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const saving = useRef(false);
-  const bg = dark ? "#101C28" : "#FAF8F3",
-    card = dark ? "#1B2A38" : "#FFFFFF",
-    ink = dark ? "#F7F5F0" : "#263B40",
-    muted = dark ? "#A9BCC5" : "#73858A";
-  const accent =
-    entry.type === "sleep"
-      ? "#776AB4"
-      : entry.type === "feed"
-        ? "#B95C48"
-        : "#237D70";
+  const palette = dark ? night : light;
+  const bg = palette.bg,
+    card = palette.card,
+    ink = palette.text,
+    muted = palette.muted;
+  const accent = dark ? "#447FA6" : "#34759D";
   const bottle = draft.feedKind === "formula" || draft.feedKind === "expressed";
   const inputStyle = [
     s.input,
     {
       backgroundColor: card,
       color: ink,
-      borderColor: dark ? "#354553" : "#E4E7E0",
+      borderColor: palette.line,
     },
   ];
   const label = (text: string) => (
@@ -124,7 +121,7 @@ export default function EntryEditor({
         s.chip,
         {
           backgroundColor: selected ? accent : card,
-          borderColor: selected ? accent : dark ? "#354553" : "#E4E7E0",
+          borderColor: selected ? accent : palette.line,
         },
       ]}
     >

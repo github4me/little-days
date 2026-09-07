@@ -5,7 +5,6 @@ import {
   Pressable,
   ActivityIndicator,
   AppState,
-  useColorScheme,
   Platform,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
@@ -28,6 +27,7 @@ import {
 import { importBackup } from "./src/backup";
 import EntryEditor, { newEntry } from "./src/EntryEditor";
 import GrowthChart, { Metric } from "./src/GrowthChart";
+import Records from "./src/Records";
 import Settings from "./src/Settings";
 import {
   Theme,
@@ -45,10 +45,10 @@ const kinds: Record<
   Entry["type"],
   { label: string; icon: string; color: string }
 > = {
-  feed: { label: "喂奶", icon: "◒", color: "#F1C4A9" },
-  diaper: { label: "尿布", icon: "♧", color: "#E9D7A7" },
-  sleep: { label: "睡眠", icon: "☾", color: "#D3CBE9" },
-  growth: { label: "测量", icon: "↗", color: "#BAD8C2" },
+  feed: { label: "喂奶", icon: "◒", color: "#FBE0D3" },
+  diaper: { label: "尿布", icon: "♧", color: "#FFF0C9" },
+  sleep: { label: "睡眠", icon: "☾", color: "#E5DDF7" },
+  growth: { label: "测量", icon: "↗", color: "#D8EEE8" },
   milestone: { label: "里程碑", icon: "✧", color: "#F0D7B5" },
 };
 const feedLabels = {
@@ -93,8 +93,7 @@ export default function App() {
   );
 }
 function BabyApp() {
-  const system = useColorScheme();
-  const [darkMode, setDarkMode] = useState(system === "dark");
+  const [darkMode, setDarkMode] = useState(false);
   const c = darkMode ? dark : light;
   const [state, setState] = useState<State | null>(null),
     [fatal, setFatal] = useState(""),
@@ -108,11 +107,7 @@ function BabyApp() {
   const stateRef = useRef<State | null>(null),
     lock = useRef(false);
   const [rescue, setRescue] = useState<State | null>(null);
-  const [filter, setFilter] = useState("all"),
-    [date, setDate] = useState(""),
-    [metric, setMetric] = useState<Metric>("weight"),
-    [period, setPeriod] = useState("7"),
-    [statMetric, setStatMetric] = useState("feed");
+  const [metric, setMetric] = useState<Metric>("weight");
   async function init() {
     try {
       const s = await loadState();
@@ -268,26 +263,6 @@ function BabyApp() {
     growth: "慢慢长大的你",
     settings: "我的",
   };
-  const visible = entries.filter(
-    (e) =>
-      (filter === "all" || e.type === filter) &&
-      (!date || localDay(new Date(e.start)) === date),
-  );
-  const daily = Array.from({ length: Number(period) }, (_, i) => {
-    const start = new Date(today);
-    start.setDate(start.getDate() - Number(period) + 1 + i);
-    const end = new Date(start);
-    end.setDate(end.getDate() + 1);
-    return { start, stats: summarize(forStats, start, end) };
-  });
-  const chartValues = daily.map((d) =>
-    statMetric === "feed"
-      ? d.stats.feedMl
-      : statMetric === "sleep"
-        ? d.stats.sleepMinutes / 60
-        : d.stats.diaperCount,
-  );
-  const maxChart = Math.max(1, ...chartValues);
   function entryRow(e: Entry) {
     return (
       <View
@@ -318,7 +293,7 @@ function BabyApp() {
                 justifyContent: "center",
               }}
             >
-              <T style={{ color: "#30443A", fontSize: 23 }}>
+              <T style={{ color: "#3A5267", fontSize: 23 }}>
                 {kinds[e.type].icon}
               </T>
             </View>
@@ -481,12 +456,12 @@ function BabyApp() {
                 >
                   <View style={row}>
                     <View style={{ flex: 1 }}>
-                      <T style={{ color: "#AAC6B5", fontSize: 12 }}>
+                      <T style={{ color: c.heroMuted, fontSize: 12 }}>
                         一点一滴，都是成长
                       </T>
                       <T
                         style={{
-                          color: "#F5F7EC",
+                          color: c.heroText,
                           fontSize: 29,
                           lineHeight: 40,
                           fontWeight: "700",
@@ -496,7 +471,7 @@ function BabyApp() {
                         {state.profile.name}
                       </T>
                       <Pressable onPress={() => setTab("settings")}>
-                        <T style={{ color: "#D1DFC9", fontSize: 13 }}>
+                        <T style={{ color: c.heroMuted, fontSize: 13 }}>
                           {ageLabel(state.profile.birthDate, new Date(now))}　›
                         </T>
                       </Pressable>
@@ -506,7 +481,7 @@ function BabyApp() {
                         width: 72,
                         height: 72,
                         borderRadius: 36,
-                        backgroundColor: "#DDE7C8",
+                        backgroundColor: c.avatar,
                         alignItems: "center",
                         justifyContent: "center",
                       }}
@@ -515,14 +490,14 @@ function BabyApp() {
                         style={{
                           fontSize: 38,
                           lineHeight: 52,
-                          color: "#2F5C48",
+                          color: c.heroText,
                         }}
                       >
                         ☘
                       </T>
                     </View>
                   </View>
-                  <View style={{ height: 1, backgroundColor: "#426252" }} />
+                  <View style={{ height: 1, backgroundColor: c.heroLine }} />
                   <View style={row}>
                     {[
                       [
@@ -543,7 +518,7 @@ function BabyApp() {
                       <View key={l}>
                         <T
                           style={{
-                            color: "#F5F7EC",
+                            color: c.heroText,
                             fontSize: 25,
                             fontWeight: "600",
                             lineHeight: 32,
@@ -551,7 +526,7 @@ function BabyApp() {
                         >
                           {v}
                         </T>
-                        <T style={{ color: "#AAC6B5", fontSize: 10 }}>{l}</T>
+                        <T style={{ color: c.heroMuted, fontSize: 10 }}>{l}</T>
                       </View>
                     ))}
                   </View>
@@ -586,7 +561,7 @@ function BabyApp() {
                             justifyContent: "center",
                           }}
                         >
-                          <T style={{ fontSize: 26, color: "#33463B" }}>
+                          <T style={{ fontSize: 26, color: "#3A5267" }}>
                             {kinds[type].icon}
                           </T>
                         </View>
@@ -653,77 +628,15 @@ function BabyApp() {
                     </Card>
                   );
                 })}
-                <View style={row}>
-                  <T style={heading}>最近记录</T>
-                  <Pressable
-                    onPress={() => setTab("records")}
-                    style={{ minHeight: 44, justifyContent: "center" }}
-                  >
-                    <T style={{ color: c.primary }}>查看全部 ›</T>
-                  </Pressable>
-                </View>
-                <Card>
-                  {entries.length ? (
-                    entries.slice(0, 4).map(entryRow)
-                  ) : (
-                    <T style={{ color: c.muted }}>
-                      从第一条喂奶、尿布或睡眠开始。小小的日常，慢慢积累。
-                    </T>
-                  )}
-                </Card>
               </>
             ) : null}
             {tab === "records" ? (
-              <>
-                <Chips
-                  options={[
-                    { label: "全部", value: "all" },
-                    ...Object.entries(kinds).map(([value, k]) => ({
-                      label: k.label,
-                      value,
-                    })),
-                  ]}
-                  value={filter}
-                  onChange={setFilter}
-                />
-                <View style={row}>
-                  <View style={{ flex: 1 }}>
-                    <Field
-                      label="按日期筛选（留空显示全部）"
-                      value={date}
-                      onChange={setDate}
-                      placeholder="YYYY-MM-DD"
-                      maxLength={10}
-                    />
-                  </View>
-                  <Button label="清除" secondary onPress={() => setDate("")} />
-                </View>
-                <View
-                  style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}
-                >
-                  {Object.entries(kinds).map(([type, k]) => (
-                    <Button
-                      key={type}
-                      label={`＋${k.label}`}
-                      secondary
-                      onPress={() => setEditor(newEntry(type as Entry["type"]))}
-                    />
-                  ))}
-                </View>
-                <Card>
-                  <T style={{ fontSize: 12, color: c.muted }}>
-                    {visible.length} 条记录 · 按发生时间排序
-                  </T>
-                  {visible.length ? (
-                    visible.slice(0, 200).map(entryRow)
-                  ) : (
-                    <T style={{ color: c.muted }}>这个日期或分类还没有记录。</T>
-                  )}
-                  {visible.length > 200 ? (
-                    <T>当前显示最近200条，请按日期筛选查看更多。</T>
-                  ) : null}
-                </Card>
-              </>
+              <Records
+                entries={entries}
+                now={now}
+                onEdit={setEditor}
+                onDelete={setDeleting}
+              />
             ) : null}
             {tab === "growth" ? (
               <>
@@ -750,124 +663,7 @@ function BabyApp() {
                     profile={state.profile}
                     metric={metric}
                   />
-                  {entries
-                    .filter((e) => e.type === "growth")
-                    .slice(0, 3)
-                    .map(entryRow)}
-                </Card>
-                <Card>
-                  <View style={row}>
-                    <T style={heading}>日常趋势</T>
-                    <Chips
-                      options={[
-                        { label: "7天", value: "7" },
-                        { label: "30天", value: "30" },
-                      ]}
-                      value={period}
-                      onChange={setPeriod}
-                    />
-                  </View>
-                  <Chips
-                    options={[
-                      { label: "奶量 mL", value: "feed" },
-                      { label: "睡眠 小时", value: "sleep" },
-                      { label: "尿布 次", value: "diaper" },
-                    ]}
-                    value={statMetric}
-                    onChange={setStatMetric}
-                  />
-                  <View
-                    style={{
-                      height: 160,
-                      flexDirection: "row",
-                      alignItems: "flex-end",
-                      gap: Number(period) === 7 ? 8 : 3,
-                      borderBottomWidth: 1,
-                      borderColor: c.line,
-                    }}
-                  >
-                    {daily.map((d, i) => (
-                      <View
-                        key={i}
-                        style={{
-                          flex: 1,
-                          alignItems: "center",
-                          height: "100%",
-                          justifyContent: "flex-end",
-                        }}
-                      >
-                        <View
-                          style={{
-                            width: "100%",
-                            height:
-                              chartValues[i] > 0
-                                ? Math.max(3, (chartValues[i] / maxChart) * 125)
-                                : 2,
-                            backgroundColor:
-                              chartValues[i] > 0 ? c.primary : c.line,
-                            borderTopLeftRadius: 4,
-                            borderTopRightRadius: 4,
-                          }}
-                        />
-                        {Number(period) === 7 ? (
-                          <T style={{ fontSize: 9, color: c.muted }}>
-                            {d.start.getDate()}日
-                          </T>
-                        ) : null}
-                      </View>
-                    ))}
-                  </View>
-                  <T style={{ color: c.muted, fontSize: 12 }}>
-                    仅汇总已记录数据；暂无记录不等于实际为零。进行中的睡眠计至此刻，重叠时段只计一次。
-                  </T>
-                  <View style={row}>
-                    <T style={{ fontSize: 12 }}>日期</T>
-                    <T style={{ fontSize: 12 }}>
-                      {statMetric === "feed"
-                        ? "已记录奶量"
-                        : statMetric === "sleep"
-                          ? "已记录睡眠"
-                          : "已记录换尿布"}
-                    </T>
-                  </View>
-                  {daily
-                    .slice()
-                    .reverse()
-                    .map((d, i) => {
-                      const idx = daily.length - 1 - i;
-                      return (
-                        <View key={idx} style={row}>
-                          <T style={{ fontSize: 12, color: c.muted }}>
-                            {localDay(d.start)}
-                          </T>
-                          <T style={{ fontSize: 12 }}>
-                            {chartValues[idx] > 0
-                              ? `${chartValues[idx].toFixed(statMetric === "sleep" ? 1 : 0)} ${statMetric === "feed" ? "mL" : statMetric === "sleep" ? "小时" : "次"}`
-                              : "暂无该项记录"}
-                          </T>
-                        </View>
-                      );
-                    })}
-                </Card>
-                <Card>
-                  <View style={row}>
-                    <T style={heading}>小小里程碑</T>
-                    <Button
-                      label="＋里程碑"
-                      secondary
-                      onPress={() => setEditor(newEntry("milestone"))}
-                    />
-                  </View>
-                  {entries.some((e) => e.type === "milestone") ? (
-                    entries
-                      .filter((e) => e.type === "milestone")
-                      .slice(0, 10)
-                      .map(entryRow)
-                  ) : (
-                    <T style={{ color: c.muted }}>
-                      第一次微笑、第一次翻身……用文字留下这一刻。
-                    </T>
-                  )}
+                  {entries.filter((e) => e.type === "growth").map(entryRow)}
                 </Card>
               </>
             ) : null}
