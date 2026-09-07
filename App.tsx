@@ -344,76 +344,80 @@ function BabyApp({
       <View
         key={e.id}
         style={{
-          paddingVertical: 13,
+          paddingVertical: 8,
           borderBottomWidth: 1,
           borderColor: c.line,
-          gap: 8,
         }}
       >
-        <View style={row}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 9 }}>
           <View
             style={{
-              flexDirection: "row",
-              gap: 12,
+              backgroundColor: kinds[e.type].color,
+              borderRadius: 12,
+              width: 36,
+              height: 36,
               alignItems: "center",
-              flex: 1,
-            }}
-          >
-            <View
-              style={{
-                backgroundColor: kinds[e.type].color,
-                borderRadius: 15,
-                width: 43,
-                height: 43,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <T style={{ color: "#3A5267", fontSize: 23 }}>
-                {kinds[e.type].icon}
-              </T>
-            </View>
-            <View style={{ flex: 1 }}>
-              <T style={{ fontWeight: "600" }}>
-                {e.type === "milestone" ? e.title : kinds[e.type].label}
-              </T>
-              <T style={{ fontSize: 13, color: c.muted }}>{detail(e, now)}</T>
-              <T style={{ fontSize: 12, color: c.muted }}>
-                {localDay(new Date(e.start))} · {time(e.start)}
-              </T>
-            </View>
-          </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t("编辑{kind}", {
-              kind: t(kinds[e.type].label),
-            })}
-            onPress={() => setEditor(e)}
-            style={{ minHeight: 44, minWidth: 44, justifyContent: "center" }}
-          >
-            <T style={{ color: c.primary, fontSize: 13 }}>编辑</T>
-          </Pressable>
-        </View>
-        {e.note ? (
-          <T style={{ color: c.muted, fontSize: 13, paddingLeft: 55 }}>
-            {e.note}
-          </T>
-        ) : null}
-        {tab !== "today" ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t("删除{kind}", {
-              kind: t(kinds[e.type].label),
-            })}
-            onPress={() => setDeleting(e)}
-            style={{
-              alignSelf: "flex-end",
-              minHeight: 44,
               justifyContent: "center",
             }}
           >
-            <T style={{ fontSize: 12, color: c.muted }}>删除</T>
-          </Pressable>
+            <T style={{ color: "#3A5267", fontSize: 20 }}>
+              {kinds[e.type].icon}
+            </T>
+          </View>
+          <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
+            <T
+              numberOfLines={1}
+              style={{ fontSize: 13, lineHeight: 19, fontWeight: "600" }}
+            >
+              {detail(e, now)}
+            </T>
+            <T style={{ fontSize: 11, lineHeight: 16, color: c.muted }}>
+              {localDay(new Date(e.start))} · {time(e.start)}
+            </T>
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t("编辑{kind}", {
+                kind: t(kinds[e.type].label),
+              })}
+              onPress={() => setEditor(e)}
+              style={{
+                minHeight: 36,
+                justifyContent: "center",
+                paddingHorizontal: 3,
+              }}
+            >
+              <T style={{ color: c.primary, fontSize: 12 }}>编辑</T>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t("删除{kind}", {
+                kind: t(kinds[e.type].label),
+              })}
+              onPress={() => setDeleting(e)}
+              style={{
+                minHeight: 36,
+                justifyContent: "center",
+                paddingHorizontal: 3,
+              }}
+            >
+              <T style={{ fontSize: 11, color: c.muted }}>删除</T>
+            </Pressable>
+          </View>
+        </View>
+        {e.note ? (
+          <T
+            numberOfLines={1}
+            style={{
+              color: c.muted,
+              fontSize: 11,
+              lineHeight: 16,
+              paddingLeft: 45,
+            }}
+          >
+            {e.note}
+          </T>
         ) : null}
       </View>
     );
