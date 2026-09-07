@@ -23,7 +23,7 @@ const english: Record<string, string> = {
   睡眠: "Sleep",
   测量: "Measure",
   里程碑: "Milestone",
-  成长测量: "Growth measurement",
+  成长测量: "Measurement",
   成长里程碑: "Milestone",
   配方奶: "Formula",
   瓶喂: "Bottle",

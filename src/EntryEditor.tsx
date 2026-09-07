@@ -685,19 +685,19 @@ export default function EntryEditor({
 const s = StyleSheet.create({
   header: {
     paddingHorizontal: 24,
-    paddingTop: 18,
-    paddingBottom: 18,
+    paddingTop: 13,
+    paddingBottom: 14,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
   kicker: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "600",
     letterSpacing: 1,
-    marginBottom: 7,
+    marginBottom: 4,
   },
-  title: { fontSize: 29, fontWeight: "800" },
+  title: { fontSize: 26, lineHeight: 31, fontWeight: "800" },
   close: {
     height: 44,
     width: 44,

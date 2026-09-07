@@ -323,7 +323,7 @@ await page.screenshot({
   ),
 });
 await page.getByRole("button", { name: "+ Measure", exact: true }).click();
-await page.getByText("Growth measurement", { exact: true }).waitFor();
+await page.getByText("Measurement", { exact: true }).waitFor();
 await page
   .getByText("Enter at least one value; decimals are kept as measured.", {
     exact: true,
