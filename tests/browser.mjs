@@ -31,7 +31,8 @@ const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
 async function assertNoUntranslatedChinese(screen) {
   const text = await page.locator("body").innerText();
-  const match = text.match(/[\p{Script=Han}]/u);
+  // The Chinese language selector intentionally uses 中 as its icon in all locales.
+  const match = text.replace(/^中$/gm, "").match(/[\p{Script=Han}]/u);
   assert.equal(
     match,
     null,

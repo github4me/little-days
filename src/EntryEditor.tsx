@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import Svg, { Path, Rect } from "react-native-svg";
+import Svg, { Path } from "react-native-svg";
 import { light, dark as night } from "./ui";
 import { Entry, makeId, validateEntry } from "./domain";
 import { t } from "./i18n";
@@ -52,15 +52,14 @@ function FeedModeIcon({ kind, color }: { kind: FeedKind; color: string }) {
         viewBox="0 0 30 30"
         accessibilityElementsHidden
       >
-        <Rect x="11" y="4" width="8" height="4" rx="1.2" {...stroke} />
+        <Path d="M12 8V6h1V3.5a2 2 0 0 1 4 0V6h1v2M10 8h10v3H10Z" {...stroke} />
         <Path
-          d="M10 8h10v3l2 3v10a3 3 0 0 1-3 3h-8a3 3 0 0 1-3-3V14l2-3V8Z"
+          d="M10 11h10l1 3v10a3 3 0 0 1-3 3h-6a3 3 0 0 1-3-3V14l1-3ZM9 15h12"
           {...stroke}
         />
         {kind === "formula" ? (
           <>
-            <Path d="M11.5 17h7" {...stroke} />
-            <Path d="M11.5 21h5" {...stroke} />
+            <Path d="M18 18h3M18 21h3M18 24h3" {...stroke} />
           </>
         ) : (
           <Path
@@ -71,57 +70,19 @@ function FeedModeIcon({ kind, color }: { kind: FeedKind; color: string }) {
       </Svg>
     );
 
-  if (kind === "breast-left")
-    return (
-      <Svg
-        width={29}
-        height={27}
-        viewBox="0 0 30 30"
-        accessibilityElementsHidden
-      >
-        <Path
-          d="M23 7c-7.1.1-12 4.2-12 10.1 0 3.5 2.5 5.9 6 5.9 3.7 0 6-2.8 6-6.1v-3.4"
-          {...stroke}
-        />
-        <Path
-          d="M10.7 15.5c-2.1.1-3.7 1.4-3.7 3.2 0 1.7 1.3 3 3.1 3.1"
-          {...stroke}
-        />
-        <Path d="M22.9 7V4.5" {...stroke} />
-      </Svg>
-    );
-
-  if (kind === "breast-right")
-    return (
-      <Svg
-        width={29}
-        height={27}
-        viewBox="0 0 30 30"
-        accessibilityElementsHidden
-      >
-        <Path
-          d="M7 7c7.1.1 12 4.2 12 10.1 0 3.5-2.5 5.9-6 5.9-3.7 0-6-2.8-6-6.1v-3.4"
-          {...stroke}
-        />
-        <Path
-          d="M19.3 15.5c2.1.1 3.7 1.4 3.7 3.2 0 1.7-1.3 3-3.1 3.1"
-          {...stroke}
-        />
-        <Path d="M7.1 7V4.5" {...stroke} />
-      </Svg>
-    );
-
   return (
-    <Svg width={30} height={27} viewBox="0 0 30 30" accessibilityElementsHidden>
+    <Svg width={32} height={28} viewBox="0 0 36 32" accessibilityElementsHidden>
+      <Path d="M6 12V3h2v9M28 12V3h2v9M4 23l2 5h24l2-5M15 22h6" {...stroke} />
       <Path
-        d="M14.3 7c-4.7.6-7.3 3.7-7.3 8.2 0 4 2.4 6.8 5.7 6.8 2.8 0 4.6-2.2 4.6-4.8v-3"
+        d="M6 12c6 0 9 5 10 11-4 2-8 2-12 0-2-4-1-8 2-11Z"
         {...stroke}
+        fill={kind === "breast-left" ? color : "none"}
       />
       <Path
-        d="M15.7 7c4.7.6 7.3 3.7 7.3 8.2 0 4-2.4 6.8-5.7 6.8-2.8 0-4.6-2.2-4.6-4.8v-3"
+        d="M30 12c-6 0-9 5-10 11 4 2 8 2 12 0 2-4 1-8-2-11Z"
         {...stroke}
+        fill={kind === "breast-right" ? color : "none"}
       />
-      <Path d="M15 7V4.5" {...stroke} />
     </Svg>
   );
 }

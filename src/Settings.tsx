@@ -364,7 +364,7 @@ export default function Settings({
             },
             {
               value: "zh" as const,
-              icon: "◎",
+              icon: "中",
               label: "中文",
               accessibilityLabel: "简体中文",
             },
