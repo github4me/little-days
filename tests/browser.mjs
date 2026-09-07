@@ -113,6 +113,17 @@ await page.evaluate(() => {
       start: a.toISOString(),
       note: "",
     },
+    ...[4.9, 4.7, 4.5, 4.3, 4.1].map((weight, index) => {
+      const start = new Date(a);
+      start.setDate(start.getDate() - (index + 1) * 7);
+      return {
+        id: `g${index + 2}`,
+        type: "growth",
+        weight,
+        start: start.toISOString(),
+        note: "",
+      };
+    }),
     {
       id: "m1",
       type: "milestone",
@@ -246,7 +257,7 @@ assert.equal(
       JSON.parse(localStorage.getItem("little-days-v1")),
     )
   ).entries.length,
-  7,
+  12,
 );
 await page.getByRole("tab", { name: "我的", exact: true }).click();
 assert.equal(await page.getByLabel("宝宝名字", { exact: true }).count(), 0);
@@ -329,6 +340,21 @@ await page.evaluate(() => document.fonts.ready);
 await page.screenshot({ path: "docs/night-preview.png" });
 await page.getByRole("tab", { name: "Growth", exact: true }).click();
 await page.getByText("Growth charts", { exact: true }).waitFor();
+await page
+  .getByRole("button", { name: "Show 1 earlier records", exact: true })
+  .waitFor();
+assert.equal(
+  await page.getByText("4.1 kg", { exact: false }).count(),
+  0,
+  "older growth measurements should be collapsed by default",
+);
+await page
+  .getByRole("button", { name: "Show 1 earlier records", exact: true })
+  .click();
+await page
+  .getByRole("button", { name: "Hide earlier records", exact: true })
+  .waitFor();
+await page.getByText("4.1 kg", { exact: false }).waitFor();
 const metricOptions = await Promise.all(
   ["All", "Weight", "Length", "Head"].map((name) =>
     page.getByRole("button", { name, exact: true }).boundingBox(),

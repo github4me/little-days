@@ -149,6 +149,7 @@ function BabyApp({
     lock = useRef(false);
   const [rescue, setRescue] = useState<State | null>(null);
   const [metric, setMetric] = useState<Metric>("weight");
+  const [growthHistoryExpanded, setGrowthHistoryExpanded] = useState(false);
   async function changeLanguage(next: LanguagePreference) {
     await onLanguageChange(next);
     if (stateRef.current) {
@@ -310,6 +311,12 @@ function BabyApp({
   const entries = [...state.entries].sort(
     (a, b) => Date.parse(b.start) - Date.parse(a.start),
   );
+  const growthEntries = entries.filter((entry) => entry.type === "growth");
+  const recentGrowthEntries = growthEntries.slice(0, 5);
+  const olderGrowthEntries = growthEntries.slice(5);
+  const growthHistoryLabel = growthHistoryExpanded
+    ? t("收起历史记录")
+    : t("显示 {count} 条历史记录", { count: olderGrowthEntries.length });
   const active = entries.find((e) => e.type === "sleep" && !e.end);
   const today = new Date(now);
   today.setHours(0, 0, 0, 0);
@@ -827,7 +834,40 @@ function BabyApp({
                     profile={state.profile}
                     metric={metric}
                   />
-                  {entries.filter((e) => e.type === "growth").map(entryRow)}
+                  {recentGrowthEntries.map(entryRow)}
+                  {olderGrowthEntries.length ? (
+                    <>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={growthHistoryLabel}
+                        accessibilityState={{ expanded: growthHistoryExpanded }}
+                        onPress={() =>
+                          setGrowthHistoryExpanded((expanded) => !expanded)
+                        }
+                        style={({ pressed }) => ({
+                          minHeight: 48,
+                          marginTop: 2,
+                          paddingHorizontal: 14,
+                          borderRadius: 14,
+                          flexDirection: "row",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          backgroundColor: c.soft,
+                          opacity: pressed ? 0.72 : 1,
+                        })}
+                      >
+                        <T style={{ color: c.primary, fontWeight: "700" }}>
+                          {growthHistoryLabel}
+                        </T>
+                        <T raw style={{ color: c.primary, fontSize: 18 }}>
+                          {growthHistoryExpanded ? "⌃" : "⌄"}
+                        </T>
+                      </Pressable>
+                      {growthHistoryExpanded
+                        ? olderGrowthEntries.map(entryRow)
+                        : null}
+                    </>
+                  ) : null}
                 </Card>
               </>
             ) : null}
