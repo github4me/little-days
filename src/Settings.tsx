@@ -5,7 +5,7 @@ import { State, validateState } from "./domain";
 import { Theme, T, Card, Field, Button, Chips, row, heading } from "./ui";
 import { exportBackup, importBackup } from "./backup";
 import {
-  loadRecovery,
+  saveAutoFeedReminder,
   loadReminderSettings,
   saveReminderSettings,
 } from "./storage";
@@ -15,6 +15,7 @@ import {
   addReminder,
   cancelReminder,
   listReminders,
+  updateReminderSilent,
 } from "./reminders";
 import { type ReminderMode, type ReminderSettings } from "./reminderSettings";
 import { copyAvatarFile, deleteAvatarFile } from "./avatar";
@@ -41,7 +42,7 @@ export default function Settings({
   onAvatarChange: (uri: string | null) => Promise<void>;
   onCommit: (next: State, recovery?: boolean) => Promise<void>;
   darkMode: boolean;
-  onDarkMode: (v: boolean) => void;
+  onDarkMode: (v: boolean) => Promise<void>;
   language: LanguagePreference;
   onLanguageChange: (language: LanguagePreference) => Promise<void>;
 }) {
@@ -55,7 +56,8 @@ export default function Settings({
   const [error, setError] = useState(""),
     [message, setMessage] = useState("");
   const [pending, setPending] = useState<State | null>(null),
-    [source, setSource] = useState("备份文件");
+    [backupNotice, setBackupNotice] = useState("");
+  const source = "备份文件";
   const [profileExpanded, setProfileExpanded] = useState(false);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [mode, setMode] = useState<ReminderMode>("once"),
@@ -119,6 +121,55 @@ export default function Settings({
   async function refresh() {
     const values = await listReminders();
     if (mounted.current) setReminders(values);
+  }
+  function reminderSettings(nextSilent = silent): ReminderSettings {
+    const currentMinutes = Number(minutes);
+    return {
+      kind,
+      mode,
+      title: title.trim() || t(`${reminderKindLabels[kind]}提醒`),
+      minutes:
+        mode === "daily" &&
+        (!Number.isFinite(currentMinutes) ||
+          currentMinutes < 1 ||
+          currentMinutes > 10080)
+          ? 120
+          : currentMinutes,
+      dailyTime: mode === "daily" ? dailyTime.trim() : "",
+      silent: nextSilent,
+    };
+  }
+  function changeSilent(nextSilent: boolean) {
+    const previous = silent;
+    setSilent(nextSilent);
+    void run(async () => {
+      try {
+        const settings = reminderSettings(nextSilent);
+        await saveReminderSettings(settings);
+        if (settings.mode === "after-feed")
+          await saveAutoFeedReminder(settings);
+        await Promise.all(
+          reminders
+            .filter(
+              (reminder) =>
+                reminder.settings?.kind === settings.kind &&
+                reminder.settings.mode === settings.mode,
+            )
+            .map((reminder) => updateReminderSilent(reminder.id, nextSilent)),
+        );
+        await refresh();
+        setMessage("提醒设置已自动保存");
+      } catch (error) {
+        setSilent(previous);
+        throw error;
+      }
+    });
+  }
+  function changeTheme(nextDarkMode: boolean) {
+    void run(async () => {
+      await onDarkMode(nextDarkMode);
+      setMessage("主题已自动保存");
+    });
   }
   return (
     <View style={{ gap: 18 }}>
@@ -388,7 +439,7 @@ export default function Settings({
             <Switch
               accessibilityLabel={t("夜间模式")}
               value={darkMode}
-              onValueChange={onDarkMode}
+              onValueChange={changeTheme}
               disabled={busy}
               trackColor={{ true: c.primary }}
             />
@@ -574,11 +625,15 @@ export default function Settings({
                 />
               )}
               <View style={row}>
-                <T>静音提醒</T>
+                <View style={{ flex: 1 }}>
+                  <T>静音提醒</T>
+                  <T style={{ color: c.muted, fontSize: 11 }}>切换后自动保存</T>
+                </View>
                 <Switch
                   accessibilityLabel={t("静音提醒")}
                   value={silent}
-                  onValueChange={setSilent}
+                  onValueChange={changeSilent}
+                  disabled={busy}
                   trackColor={{ true: c.primary }}
                 />
               </View>
@@ -595,23 +650,8 @@ export default function Settings({
                     !/^([01]\d|2[0-3]):[0-5]\d$/.test(dailyTime.trim())
                   )
                     throw new Error("时间格式应为 HH:mm");
-                  const reminderTitle =
-                    title.trim() || t(`${reminderKindLabels[kind]}提醒`);
-                  const currentMinutes = Number(minutes);
-                  const settings: ReminderSettings = {
-                    kind,
-                    mode,
-                    title: reminderTitle,
-                    minutes:
-                      mode === "daily" &&
-                      (!Number.isFinite(currentMinutes) ||
-                        currentMinutes < 1 ||
-                        currentMinutes > 10080)
-                        ? 120
-                        : currentMinutes,
-                    dailyTime: mode === "daily" ? dailyTime.trim() : "",
-                    silent,
-                  };
+                  const settings = reminderSettings();
+                  const reminderTitle = settings.title;
                   if (mode === "after-feed")
                     await addAutoFeedReminder(
                       reminderTitle,
@@ -685,7 +725,9 @@ export default function Settings({
           onPress={() =>
             run(async () => {
               await exportBackup(state);
-              setMessage("导出操作已完成，请确认备份文件已保存");
+              const notice = "导出操作已完成，请确认备份文件已保存";
+              setMessage(notice);
+              setBackupNotice(notice);
             })
           }
         />
@@ -697,28 +739,24 @@ export default function Settings({
             run(async () => {
               const next = await importBackup();
               if (next) {
-                setSource("备份文件");
+                setBackupNotice("");
                 setPending(next);
               }
             })
           }
         />
-        <Button
-          label="查看上次替换前的数据"
-          secondary
-          disabled={busy || !!pending}
-          onPress={() =>
-            run(async () => {
-              const next = await loadRecovery();
-              if (!next) {
-                setMessage("暂无恢复副本；首次导入并替换记录后会保留一份");
-                return;
-              }
-              setSource("上次替换前的数据");
-              setPending(next);
-            })
-          }
-        />
+        {backupNotice ? (
+          <View
+            style={{
+              backgroundColor: c.soft,
+              borderRadius: 14,
+              paddingHorizontal: 14,
+              paddingVertical: 12,
+            }}
+          >
+            <T style={{ color: c.muted, fontSize: 12 }}>{t(backupNotice)}</T>
+          </View>
+        ) : null}
         {pending && (
           <View
             style={{
@@ -752,6 +790,7 @@ export default function Settings({
                   await onAvatarChange(null);
                   await deleteAvatarFile(avatarUri);
                   setPending(null);
+                  setBackupNotice("");
                   setMessage(
                     "记录已恢复；头像已移除，现有提醒保持不变，请按需检查",
                   );
@@ -762,7 +801,10 @@ export default function Settings({
               label="取消恢复"
               secondary
               disabled={busy}
-              onPress={() => setPending(null)}
+              onPress={() => {
+                setPending(null);
+                setBackupNotice("");
+              }}
             />
           </View>
         )}

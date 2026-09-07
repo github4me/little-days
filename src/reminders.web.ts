@@ -15,6 +15,8 @@ export async function listReminders(): Promise<Reminder[]> {
 
 export async function cancelReminder(_id: string) {}
 
+export async function updateReminderSilent(_id: string, _silent: boolean) {}
+
 export async function addReminder(
   _title: string,
   _minutes: number,

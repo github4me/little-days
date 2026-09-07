@@ -210,7 +210,7 @@ assert.ok(
   diaperOptions.every(
     (box) => Math.abs(box.y - diaperOptions[0].y) < 1 && box.height >= 60,
   ),
-  "diaper choices should be icon cards on one row",
+  `diaper choices should be icon cards on one row: ${JSON.stringify(diaperOptions)}`,
 );
 await page.evaluate(() => window.scrollTo(0, 0));
 await page.screenshot({
@@ -250,6 +250,12 @@ assert.equal(
 );
 await page.getByRole("tab", { name: "我的", exact: true }).click();
 assert.equal(await page.getByLabel("宝宝名字", { exact: true }).count(), 0);
+assert.equal(
+  await page
+    .getByRole("button", { name: "查看上次替换前的数据", exact: true })
+    .count(),
+  0,
+);
 await page.getByRole("button", { name: "展开宝宝档案", exact: true }).click();
 await page.getByLabel("宝宝名字", { exact: true }).waitFor();
 const sexOptions = await Promise.all(
@@ -274,6 +280,9 @@ assert.ok(
   "night mode switch should fit inside the settings card",
 );
 await nightModeSwitch.click();
+await page.waitForFunction(
+  () => localStorage.getItem("little-days-v1-dark") === "true",
+);
 assert.equal(
   await page.evaluate(() => localStorage.getItem("little-days-v1-dark")),
   "true",

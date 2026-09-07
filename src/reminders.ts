@@ -119,6 +119,28 @@ export async function cancelReminder(id: string) {
   await Notifications.cancelScheduledNotificationAsync(id);
 }
 
+export async function updateReminderSilent(id: string, silent: boolean) {
+  const reminder = (
+    await Notifications.getAllScheduledNotificationsAsync()
+  ).find((item) => item.identifier === id);
+  if (!reminder || !reminder.trigger || typeof reminder.trigger !== "object")
+    return;
+  const channelId = await prepareChannel(silent);
+  await Notifications.cancelScheduledNotificationAsync(id);
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: reminder.content.title ?? t("照护提醒"),
+      body: reminder.content.body ?? t("按宝宝当下的需要安排照护。"),
+      sound: silent ? false : "default",
+      data: { ...(reminder.content.data ?? {}), silent },
+    },
+    trigger: {
+      ...reminder.trigger,
+      channelId,
+    } as Notifications.NotificationTriggerInput,
+  });
+}
+
 export async function addReminder(
   title: string,
   minutes: number,
