@@ -207,6 +207,21 @@ await page.getByLabel("宝宝名字", { exact: true }).waitFor();
 await page.getByRole("switch", { name: "夜间模式", exact: true }).click();
 await page.getByRole("button", { name: "English", exact: true }).click();
 await page.getByText("Care reminders", { exact: true }).waitFor();
+const languageOptions = await Promise.all(
+  ["Follow system", "Simplified Chinese", "English"].map((name) =>
+    page.getByRole("button", { name, exact: true }).boundingBox(),
+  ),
+);
+assert.ok(languageOptions.every(Boolean));
+assert.ok(
+  languageOptions.every(
+    (box) => Math.abs(box.y - languageOptions[0].y) < 1,
+  ),
+  "language choices should stay on one row",
+);
+await page.screenshot({
+  path: path.join(process.env.TEMP ?? "docs", "little-days-language-preview.png"),
+});
 await page.getByRole("tab", { name: "Today", exact: true }).click();
 await page.getByText("测试宝宝's little days", { exact: true }).waitFor();
 await page.evaluate(() => document.fonts.ready);

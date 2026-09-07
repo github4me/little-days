@@ -114,6 +114,8 @@ const english: Record<string, string> = {
   "跟随系统语言，或在这里固定选择显示语言。":
     "Follow your system language, or choose one here.",
   跟随系统: "Follow system",
+  自动: "Auto",
+  中文: "Chinese",
   简体中文: "Simplified Chinese",
   照护提醒: "Care reminders",
   "跟随模式会在每次保存喂奶后，按最新开始时间安排下一次提醒。":

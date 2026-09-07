@@ -298,20 +298,82 @@ export default function Settings({
         <T style={{ color: c.muted, fontSize: 13 }}>
           跟随系统语言，或在这里固定选择显示语言。
         </T>
-        <Chips
-          value={language}
-          options={[
-            { label: "跟随系统", value: "system" },
-            { label: "简体中文", value: "zh" },
-            { label: "English", value: "en" },
-          ]}
-          onChange={(next) =>
-            void run(async () => {
-              await onLanguageChange(next as LanguagePreference);
-              setMessage(t("语言已保存"));
-            })
-          }
-        />
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          {[
+            {
+              value: "system" as const,
+              icon: "⌘",
+              label: "自动",
+              accessibilityLabel: "跟随系统",
+            },
+            {
+              value: "zh" as const,
+              icon: "中",
+              label: "中文",
+              accessibilityLabel: "简体中文",
+            },
+            {
+              value: "en" as const,
+              icon: "A",
+              label: "English",
+              accessibilityLabel: "English",
+            },
+          ].map(({ value, icon, label, accessibilityLabel }) => {
+            const selected = language === value;
+            return (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t(accessibilityLabel)}
+                accessibilityState={{ selected }}
+                disabled={busy}
+                key={value}
+                onPress={() =>
+                  void run(async () => {
+                    await onLanguageChange(value as LanguagePreference);
+                    setMessage(t("语言已保存"));
+                  })
+                }
+                style={({ pressed }) => [
+                  {
+                    flex: 1,
+                    minWidth: 0,
+                    minHeight: 66,
+                    borderRadius: 16,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 2,
+                    backgroundColor: selected ? c.soft : c.card,
+                    borderWidth: 1,
+                    borderColor: selected ? c.primary : c.line,
+                    opacity: pressed || busy ? 0.7 : 1,
+                  },
+                ]}
+              >
+                <T
+                  raw
+                  style={{
+                    color: selected ? c.primary : c.muted,
+                    fontSize: 22,
+                    lineHeight: 26,
+                    fontWeight: icon === "A" ? "700" : "500",
+                  }}
+                >
+                  {icon}
+                </T>
+                <T
+                  style={{
+                    color: selected ? c.primary : c.muted,
+                    fontSize: 11,
+                    lineHeight: 15,
+                    fontWeight: selected ? "700" : "500",
+                  }}
+                >
+                  {label}
+                </T>
+              </Pressable>
+            );
+          })}
+        </View>
       </Card>
       <Card>
         <View style={row}>
