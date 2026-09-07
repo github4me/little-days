@@ -145,9 +145,9 @@ const english: Record<string, string> = {
   软件更新: "Software updates",
   "应用会安全检查更新。更新服务可能收到设备系统版本和随机安装标记，但不包含宝宝记录或照片。":
     "The app securely checks for updates. The update service may receive the operating-system version and a random installation token, never baby records or photos.",
-  "需要帮助？": "Need help?",
-  "这款应用可离线使用，无需账号。正式发布后，App Store 页面会提供支持方式和完整隐私政策链接。":
-    "This app works offline without an account. Its App Store page will provide support details and a full privacy-policy link before public release.",
+  联系支持: "Contact support",
+  "这款应用可离线使用，无需账号。需要帮助？请发送邮件给我们。":
+    "This app works offline without an account. Need help? Send us an email.",
   照护提醒: "Care reminders",
   "跟随模式会在每次保存喂奶后，按最新开始时间安排下一次提醒。":
     "Follow mode schedules the next reminder from the latest saved feed start time.",

@@ -1,7 +1,9 @@
 import React, { useContext } from "react";
-import { Pressable, View } from "react-native";
+import { Linking, Pressable, View } from "react-native";
 import { Card, Theme, T, heading, row } from "./ui";
 import { t } from "./i18n";
+
+const supportEmail = "admin@reticle.com.au";
 
 function PrivacySection({
   icon,
@@ -119,20 +121,34 @@ export default function PrivacySupport({ onBack }: { onBack: () => void }) {
         />
       </Card>
 
-      <Card>
-        <View style={row}>
-          <View style={{ flex: 1, gap: 3 }}>
-            <T style={{ fontSize: 17, fontWeight: "700" }}>需要帮助？</T>
-            <T style={{ color: c.muted, fontSize: 13 }}>
-              这款应用可离线使用，无需账号。正式发布后，App Store
-              页面会提供支持方式和完整隐私政策链接。
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t("联系支持")}
+        onPress={() => {
+          void Linking.openURL(`mailto:${supportEmail}`).catch(() => {});
+        }}
+        style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+      >
+        <Card>
+          <View style={row}>
+            <View style={{ flex: 1, gap: 3 }}>
+              <T style={{ fontSize: 17, fontWeight: "700" }}>联系支持</T>
+              <T style={{ color: c.muted, fontSize: 13 }}>
+                这款应用可离线使用，无需账号。需要帮助？请发送邮件给我们。
+              </T>
+              <T
+                style={{ color: c.primary, fontSize: 13, fontWeight: "700" }}
+                raw
+              >
+                {supportEmail}
+              </T>
+            </View>
+            <T raw style={{ color: c.primary, fontSize: 22 }}>
+              ✉
             </T>
           </View>
-          <T raw style={{ color: c.primary, fontSize: 23 }}>
-            ?
-          </T>
-        </View>
-      </Card>
+        </Card>
+      </Pressable>
     </View>
   );
 }

@@ -305,6 +305,13 @@ await page
   .click();
 await page.getByText("Your data stays with you", { exact: true }).waitFor();
 await page.getByText("Software updates", { exact: true }).waitFor();
+await page.getByText("admin@reticle.com.au", { exact: true }).waitFor();
+assert.equal(
+  await page
+    .getByRole("button", { name: "Contact support", exact: true })
+    .count(),
+  1,
+);
 await assertNoUntranslatedChinese("Privacy & support");
 await page.getByRole("button", { name: "Back to More", exact: true }).click();
 await page.getByText("Care reminders", { exact: true }).waitFor();
