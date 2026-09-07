@@ -29,6 +29,15 @@ const fontCSS = fontDir
 
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
+async function assertNoUntranslatedChinese(screen) {
+  const text = await page.locator("body").innerText();
+  const match = text.match(/[\p{Script=Han}]/u);
+  assert.equal(
+    match,
+    null,
+    `${screen} still contains untranslated Chinese: ${text}`,
+  );
+}
 await page.route("http://little-days.test/**", async (route) => {
   const url = new URL(route.request().url());
   const local =
@@ -107,7 +116,7 @@ await page.evaluate(() => {
     {
       id: "m1",
       type: "milestone",
-      title: "旧里程碑",
+      title: "First smile",
       start: a.toISOString(),
       note: "",
     },
@@ -116,13 +125,14 @@ await page.evaluate(() => {
     "little-days-v1",
     JSON.stringify({
       schemaVersion: 1,
-      profile: { name: "测试宝宝", birthDate: "2026-07-01", sex: "male" },
+      profile: { name: "QQ", birthDate: "2026-07-01", sex: "male" },
       entries,
     }),
   );
 });
 await page.reload();
-await page.getByText("测试宝宝的小日子", { exact: true }).waitFor();
+await page.getByText("QQ的小日子", { exact: true }).waitFor();
+assert.equal(await page.getByText("● 仅此设备", { exact: true }).count(), 0);
 await page.evaluate(() => document.fonts.ready);
 await page.screenshot({ path: "docs/home-preview.png" });
 await page.getByRole("tab", { name: "记录", exact: true }).click();
@@ -145,9 +155,27 @@ for (const label of [
 assert.equal(await page.getByRole("textbox").count(), 0);
 await page.getByText("2 次喂奶 · 250 mL · 21分钟", { exact: true }).waitFor();
 await page.getByText("距上次 3小时1分", { exact: true }).waitFor();
+const recordKindOptions = await Promise.all(
+  ["喂奶", "尿布", "睡眠"].map((name) =>
+    page.getByRole("button", { name, exact: true }).boundingBox(),
+  ),
+);
+assert.ok(recordKindOptions.every(Boolean));
+assert.ok(
+  recordKindOptions.every(
+    (box) => Math.abs(box.y - recordKindOptions[0].y) < 1 && box.height >= 60,
+  ),
+  "record type choices should be icon cards on one row",
+);
 await page.evaluate(() => document.fonts.ready);
 await page.screenshot({ path: "docs/records-preview.png" });
 await page.getByRole("button", { name: "时长", exact: true }).click();
+const recordUnitOptions = await Promise.all(
+  ["mL", "时长"].map((name) =>
+    page.getByRole("button", { name, exact: true }).boundingBox(),
+  ),
+);
+assert.ok(recordUnitOptions.every((box) => box.height >= 50));
 await page
   .getByRole("button", { name: "编辑喂奶", exact: true })
   .first()
@@ -172,6 +200,26 @@ await page.getByRole("button", { name: "尿布", exact: true }).click();
 await page
   .getByText("1 次更换 · 有尿 1 次 · 有便 1 次", { exact: true })
   .waitFor();
+await page.getByRole("button", { name: "编辑尿布", exact: true }).click();
+const diaperOptions = await Promise.all(
+  ["有尿", "有便", "尿 + 便"].map((name) =>
+    page.getByRole("button", { name, exact: true }).boundingBox(),
+  ),
+);
+assert.ok(
+  diaperOptions.every(
+    (box) => Math.abs(box.y - diaperOptions[0].y) < 1 && box.height >= 60,
+  ),
+  "diaper choices should be icon cards on one row",
+);
+await page.evaluate(() => window.scrollTo(0, 0));
+await page.screenshot({
+  path: path.join(
+    process.env.TEMP ?? "docs",
+    "little-days-diaper-options-preview.png",
+  ),
+});
+await page.getByLabel("关闭记录编辑", { exact: true }).click();
 await page.getByRole("button", { name: "删除尿布", exact: true }).click();
 await page.getByRole("button", { name: "确认删除", exact: true }).click();
 await page.getByRole("button", { name: "撤销删除", exact: true }).click();
@@ -204,9 +252,21 @@ await page.getByRole("tab", { name: "我的", exact: true }).click();
 assert.equal(await page.getByLabel("宝宝名字", { exact: true }).count(), 0);
 await page.getByRole("button", { name: "展开宝宝档案", exact: true }).click();
 await page.getByLabel("宝宝名字", { exact: true }).waitFor();
+const sexOptions = await Promise.all(
+  ["男宝宝", "女宝宝", "暂不填写"].map((name) =>
+    page.getByRole("button", { name, exact: true }).boundingBox(),
+  ),
+);
+assert.ok(
+  sexOptions.every(
+    (box) => Math.abs(box.y - sexOptions[0].y) < 1 && box.height >= 60,
+  ),
+  "profile choices should be icon cards on one row",
+);
 await page.getByRole("switch", { name: "夜间模式", exact: true }).click();
 await page.getByRole("button", { name: "English", exact: true }).click();
 await page.getByText("Care reminders", { exact: true }).waitFor();
+assert.equal(await page.getByText("● This device", { exact: true }).count(), 0);
 const languageOptions = await Promise.all(
   ["Follow system", "Simplified Chinese", "English"].map((name) =>
     page.getByRole("button", { name, exact: true }).boundingBox(),
@@ -214,25 +274,75 @@ const languageOptions = await Promise.all(
 );
 assert.ok(languageOptions.every(Boolean));
 assert.ok(
-  languageOptions.every(
-    (box) => Math.abs(box.y - languageOptions[0].y) < 1,
-  ),
+  languageOptions.every((box) => Math.abs(box.y - languageOptions[0].y) < 1),
   "language choices should stay on one row",
 );
 await page.screenshot({
-  path: path.join(process.env.TEMP ?? "docs", "little-days-language-preview.png"),
+  path: path.join(
+    process.env.TEMP ?? "docs",
+    "little-days-language-preview.png",
+  ),
 });
+await assertNoUntranslatedChinese("Settings");
 await page.getByRole("tab", { name: "Today", exact: true }).click();
-await page.getByText("测试宝宝's little days", { exact: true }).waitFor();
+await page.getByText("QQ's little days", { exact: true }).waitFor();
+await assertNoUntranslatedChinese("Today");
 await page.evaluate(() => document.fonts.ready);
 await page.screenshot({ path: "docs/night-preview.png" });
+await page.getByRole("tab", { name: "Growth", exact: true }).click();
+await page.getByText("Growth charts", { exact: true }).waitFor();
+const metricOptions = await Promise.all(
+  ["All", "Weight", "Length", "Head"].map((name) =>
+    page.getByRole("button", { name, exact: true }).boundingBox(),
+  ),
+);
+assert.ok(metricOptions.every(Boolean));
+assert.ok(
+  metricOptions.every((box) => Math.abs(box.y - metricOptions[0].y) < 1),
+  "growth metric choices should stay on one row",
+);
+await assertNoUntranslatedChinese("Growth");
+await page.screenshot({
+  path: path.join(
+    process.env.TEMP ?? "docs",
+    "little-days-growth-picker-preview.png",
+  ),
+});
 await page.getByRole("tab", { name: "Records", exact: true }).click();
+await page.getByText("Last 7 days", { exact: true }).waitFor();
+await assertNoUntranslatedChinese("Records");
 await page.setViewportSize({ width: 340, height: 740 });
+await page.getByRole("tab", { name: "Growth", exact: true }).click();
+await page.getByText("Growth charts", { exact: true }).waitFor();
+const narrowMetricOptions = await Promise.all(
+  ["All", "Weight", "Length", "Head"].map((name) =>
+    page.getByRole("button", { name, exact: true }).boundingBox(),
+  ),
+);
+assert.ok(
+  narrowMetricOptions.every(
+    (box) => Math.abs(box.y - narrowMetricOptions[0].y) < 1,
+  ),
+  "growth metric choices should stay on one row on a narrow phone",
+);
 assert.equal(
   await page.evaluate(
     () => document.documentElement.scrollWidth <= window.innerWidth,
   ),
   true,
+);
+await page.getByRole("tab", { name: "Records", exact: true }).click();
+await page.getByText("Last 7 days", { exact: true }).waitFor();
+const narrowRecordKindOptions = await Promise.all(
+  ["Feed", "Diaper", "Sleep"].map((name) =>
+    page.getByRole("button", { name, exact: true }).boundingBox(),
+  ),
+);
+assert.ok(
+  narrowRecordKindOptions.every(
+    (box) => Math.abs(box.y - narrowRecordKindOptions[0].y) < 1,
+  ),
+  "record type choices should stay on one row on a narrow phone",
 );
 assert.deepEqual(errors, []);
 console.log(

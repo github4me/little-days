@@ -37,7 +37,9 @@ function Bars({
       width="100%"
       height={values ? 132 : 172}
       viewBox={`0 0 330 ${values ? 132 : 172}`}
-      accessibilityLabel={`统计图，单位${unit}，数值见每日汇总和明细`}
+      accessibilityLabel={t("统计图，单位{unit}，数值见每日汇总和明细", {
+        unit: t(unit),
+      })}
     >
       {[0, 0.5, 1].map((f) => (
         <React.Fragment key={f}>
@@ -203,10 +205,11 @@ export default function Records({
     <View style={{ gap: 20 }}>
       <Chips
         value={kind}
+        iconized
         options={[
-          { label: "喂奶", value: "feed" },
-          { label: "尿布", value: "diaper" },
-          { label: "睡眠", value: "sleep" },
+          { label: "喂奶", value: "feed", icon: "◒" },
+          { label: "尿布", value: "diaper", icon: "♧" },
+          { label: "睡眠", value: "sleep", icon: "☾" },
         ]}
         onChange={(v) => {
           setKind(v as Kind);
@@ -219,9 +222,11 @@ export default function Records({
           {kind === "feed" ? (
             <Chips
               value={unit}
+              iconized
+              compact
               options={[
-                { label: "mL", value: "mL" },
-                { label: "时长", value: "hours" },
+                { label: "mL", value: "mL", icon: "◒" },
+                { label: "时长", value: "hours", icon: "◷" },
               ]}
               onChange={setUnit}
             />
@@ -346,7 +351,15 @@ export default function Records({
                   >
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel={`编辑${kind === "feed" ? "喂奶" : kind === "sleep" ? "睡眠" : "尿布"}`}
+                      accessibilityLabel={t("编辑{kind}", {
+                        kind: t(
+                          kind === "feed"
+                            ? "喂奶"
+                            : kind === "sleep"
+                              ? "睡眠"
+                              : "尿布",
+                        ),
+                      })}
                       onPress={() => onEdit(e)}
                       style={{ minHeight: 44, gap: 6 }}
                     >
@@ -363,9 +376,11 @@ export default function Records({
                               ? `${e.amount} mL`
                               : t("亲喂")
                             : kind === "diaper"
-                              ? { wet: "尿", dirty: "便", mixed: "尿＋便" }[
-                                  e.diaperKind!
-                                ]
+                              ? t(
+                                  { wet: "尿", dirty: "便", mixed: "尿＋便" }[
+                                    e.diaperKind!
+                                  ],
+                                )
                               : elapsed(
                                   Date.parse(
                                     e.end ?? new Date(now).toISOString(),
@@ -405,7 +420,15 @@ export default function Records({
                     </Pressable>
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel={`删除${kind === "feed" ? "喂奶" : kind === "sleep" ? "睡眠" : "尿布"}`}
+                      accessibilityLabel={t("删除{kind}", {
+                        kind: t(
+                          kind === "feed"
+                            ? "喂奶"
+                            : kind === "sleep"
+                              ? "睡眠"
+                              : "尿布",
+                        ),
+                      })}
                       onPress={() => onDelete(e)}
                       style={{
                         minHeight: 32,

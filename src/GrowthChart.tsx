@@ -203,7 +203,7 @@ export default function GrowthChart({
             }}
           >
             <T style={{ color: colors[item], fontSize: 12, fontWeight: "700" }}>
-              ● {labels[item]}
+              ● {t(labels[item])}
             </T>
             <GrowthPlot
               entries={entries}

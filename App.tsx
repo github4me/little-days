@@ -81,7 +81,7 @@ function detail(e: Entry, now: number) {
     ]
       .filter(Boolean)
       .join(" · ");
-  if (e.type === "diaper") return diaperLabels[e.diaperKind!];
+  if (e.type === "diaper") return t(diaperLabels[e.diaperKind!]);
   if (e.type === "sleep")
     return e.end
       ? `${time(e.start)}–${time(e.end)} · ${elapsed(Date.parse(e.end) - Date.parse(e.start))}`
@@ -168,7 +168,9 @@ function BabyApp({
       setFatal("");
       if (preference !== null) setDarkMode(preference);
     } catch (e) {
-      setFatal(`无法读取本地数据，原数据没有被覆盖。${(e as Error).message}`);
+      setFatal(
+        `${t("无法读取本地数据，原数据没有被覆盖。")} ${(e as Error).message}`,
+      );
     }
   }
   useEffect(() => {
@@ -264,12 +266,14 @@ function BabyApp({
                   })
                 }
               />
-              {message ? <T>{message}</T> : null}
+              {message ? <T>{t(message)}</T> : null}
               {rescue ? (
                 <Card>
                   <T>
-                    用「{rescue.profile.name}」的 {rescue.entries.length}{" "}
-                    条记录替换当前数据？
+                    {t("用「{name}」的 {count} 条记录替换当前数据？", {
+                      name: rescue.profile.name,
+                      count: rescue.entries.length,
+                    })}
                   </T>
                   <Button
                     label="确认恢复"
@@ -370,7 +374,9 @@ function BabyApp({
           </View>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`编辑${kinds[e.type].label}`}
+            accessibilityLabel={t("编辑{kind}", {
+              kind: t(kinds[e.type].label),
+            })}
             onPress={() => setEditor(e)}
             style={{ minHeight: 44, minWidth: 44, justifyContent: "center" }}
           >
@@ -385,7 +391,9 @@ function BabyApp({
         {tab !== "today" ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`删除${kinds[e.type].label}`}
+            accessibilityLabel={t("删除{kind}", {
+              kind: t(kinds[e.type].label),
+            })}
             onPress={() => setDeleting(e)}
             style={{
               alignSelf: "flex-end",
@@ -413,7 +421,7 @@ function BabyApp({
             contentContainerStyle={{ padding: 20, gap: 20, paddingBottom: 28 }}
             keyboardShouldPersistTaps="handled"
           >
-            <View style={row}>
+            <View>
               <View>
                 <T
                   style={{
@@ -438,33 +446,27 @@ function BabyApp({
                   </T>
                 ) : null}
               </View>
-              <View
-                style={{
-                  backgroundColor: c.soft,
-                  paddingHorizontal: 11,
-                  paddingVertical: 5,
-                  borderRadius: 20,
-                }}
-              >
-                <T style={{ fontSize: 11, color: c.primary }}>● 仅此设备</T>
-              </View>
             </View>
             {message ? (
               <Pressable
                 onPress={() => setMessage("")}
-                accessibilityLabel="关闭提示"
+                accessibilityLabel={t("关闭提示")}
                 style={{
                   padding: 12,
                   borderRadius: 14,
                   backgroundColor: c.soft,
                 }}
               >
-                <T style={{ fontSize: 13 }}>{message}　×</T>
+                <T style={{ fontSize: 13 }}>{t(message)}　×</T>
               </Pressable>
             ) : null}
             {deleting ? (
               <Card>
-                <T>删除这条{kinds[deleting.type].label}记录？</T>
+                <T>
+                  {t("删除这条{kind}记录？", {
+                    kind: t(kinds[deleting.type].label),
+                  })}
+                </T>
                 <View style={row}>
                   <Button
                     label="取消"
@@ -557,7 +559,7 @@ function BabyApp({
                     >
                       {avatarUri && !avatarFailed ? (
                         <Image
-                          accessibilityLabel="宝宝头像"
+                          accessibilityLabel={t("宝宝头像")}
                           onError={() => setAvatarFailed(true)}
                           resizeMode="cover"
                           source={{ uri: avatarUri }}
@@ -744,16 +746,73 @@ function BabyApp({
                       onPress={() => setEditor(newEntry("growth"))}
                     />
                   </View>
-                  <Chips
-                    options={[
-                      { label: "全部", value: "all" },
-                      { label: "体重 kg", value: "weight" },
-                      { label: "身长 cm", value: "length" },
-                      { label: "头围 cm", value: "head" },
-                    ]}
-                    value={metric}
-                    onChange={(v) => setMetric(v as Metric)}
-                  />
+                  <View style={{ flexDirection: "row", gap: 6 }}>
+                    {[
+                      { value: "all" as const, icon: "≋", label: "全部" },
+                      { value: "weight" as const, icon: "⚖", label: "体重" },
+                      { value: "length" as const, icon: "↕", label: "身长" },
+                      { value: "head" as const, icon: "◯", label: "头围" },
+                    ].map(({ value, icon, label }) => {
+                      const selected = metric === value;
+                      const accent =
+                        value === "length"
+                          ? darkMode
+                            ? "#F2AF94"
+                            : "#C97962"
+                          : value === "head"
+                            ? darkMode
+                              ? "#C7B7FF"
+                              : "#7565A5"
+                            : c.primary;
+                      return (
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={t(label)}
+                          accessibilityState={{ selected }}
+                          key={value}
+                          onPress={() => setMetric(value)}
+                          style={({ pressed }) => [
+                            {
+                              flex: 1,
+                              minWidth: 0,
+                              minHeight: 64,
+                              borderRadius: 15,
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: 2,
+                              backgroundColor: selected ? c.soft : c.card,
+                              borderWidth: 1,
+                              borderColor: selected ? accent : c.line,
+                              opacity: pressed ? 0.72 : 1,
+                            },
+                          ]}
+                        >
+                          <T
+                            raw
+                            style={{
+                              color: selected ? accent : c.muted,
+                              fontSize: 19,
+                              lineHeight: 23,
+                              fontWeight: icon === "⚖" ? "500" : "700",
+                            }}
+                          >
+                            {icon}
+                          </T>
+                          <T
+                            style={{
+                              color: selected ? accent : c.muted,
+                              fontSize: 10,
+                              lineHeight: 14,
+                              fontWeight: selected ? "700" : "500",
+                            }}
+                            numberOfLines={1}
+                          >
+                            {label}
+                          </T>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
                   <GrowthChart
                     entries={entries}
                     profile={state.profile}

@@ -128,21 +128,23 @@ export default function Settings({
       {!!error && (
         <Card>
           <T accessibilityRole="alert" style={{ color: "#B34B3B" }}>
-            {error}
+            {t(error)}
           </T>
         </Card>
       )}
       {!!message && (
         <Card>
           <T accessibilityLiveRegion="polite" style={{ color: c.primary }}>
-            {message}
+            {t(message)}
           </T>
         </Card>
       )}
       <Card>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={profileExpanded ? "收起宝宝档案" : "展开宝宝档案"}
+          accessibilityLabel={t(
+            profileExpanded ? "收起宝宝档案" : "展开宝宝档案",
+          )}
           disabled={busy}
           onPress={() => setProfileExpanded((expanded) => !expanded)}
           style={({ pressed }) => [row, { opacity: pressed ? 0.7 : 1 }]}
@@ -171,7 +173,7 @@ export default function Settings({
                 >
                   {avatarUri ? (
                     <Image
-                      accessibilityLabel="宝宝头像"
+                      accessibilityLabel={t("宝宝头像")}
                       resizeMode="cover"
                       source={{ uri: avatarUri }}
                       style={{ width: 70, height: 70 }}
@@ -259,10 +261,11 @@ export default function Settings({
               <Chips
                 value={sex}
                 onChange={setSex}
+                iconized
                 options={[
-                  { label: "男宝宝", value: "male" },
-                  { label: "女宝宝", value: "female" },
-                  { label: "暂不填写", value: "unspecified" },
+                  { label: "男宝宝", value: "male", icon: "♂" },
+                  { label: "女宝宝", value: "female", icon: "♀" },
+                  { label: "暂不填写", value: "unspecified", icon: "○" },
                 ]}
               />
             </View>
@@ -308,7 +311,7 @@ export default function Settings({
             },
             {
               value: "zh" as const,
-              icon: "中",
+              icon: "◎",
               label: "中文",
               accessibilityLabel: "简体中文",
             },
@@ -382,7 +385,7 @@ export default function Settings({
             <T style={{ color: c.muted, fontSize: 13 }}>柔和配色，夜里也舒适</T>
           </View>
           <Switch
-            accessibilityLabel="夜间模式"
+            accessibilityLabel={t("夜间模式")}
             value={darkMode}
             onValueChange={onDarkMode}
             disabled={busy}
@@ -414,7 +417,9 @@ export default function Settings({
                   return (
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel={value}
+                      accessibilityLabel={t(
+                        reminderKindLabels[value as ReminderSettings["kind"]],
+                      )}
                       accessibilityState={{ selected }}
                       key={value}
                       onPress={() => {
@@ -507,7 +512,7 @@ export default function Settings({
                   return (
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel={label}
+                      accessibilityLabel={t(label)}
                       accessibilityState={{ selected }}
                       key={value}
                       onPress={() => setMode(value)}
@@ -569,7 +574,7 @@ export default function Settings({
               <View style={row}>
                 <T>静音提醒</T>
                 <Switch
-                  accessibilityLabel="静音提醒"
+                  accessibilityLabel={t("静音提醒")}
                   value={silent}
                   onValueChange={setSilent}
                   trackColor={{ true: c.primary }}
@@ -644,9 +649,9 @@ export default function Settings({
                   }}
                 >
                   <View style={{ flex: 1 }}>
-                    <T style={{ fontWeight: "600" }}>{reminder.title}</T>
+                    <T style={{ fontWeight: "600" }}>{t(reminder.title)}</T>
                     <T style={{ color: c.muted, fontSize: 12 }}>
-                      {reminder.detail}
+                      {t(reminder.detail)}
                     </T>
                   </View>
                   <Button
@@ -721,13 +726,20 @@ export default function Settings({
               gap: 12,
             }}
           >
-            <T style={{ fontWeight: "700" }}>确认恢复：{source}</T>
+            <T style={{ fontWeight: "700" }}>
+              {t("确认恢复：{source}", { source: t(source) })}
+            </T>
             <T>
-              {pending.profile.name} · {pending.entries.length} 条记录
+              {t("{name} · {count} 条记录", {
+                name: pending.profile.name,
+                count: pending.entries.length,
+              })}
             </T>
             <T style={{ fontSize: 13 }}>
-              这会替换当前「{state.profile.name}」的 {state.entries.length}{" "}
-              条记录，不会合并。替换前的数据会保留一份，可从上方入口恢复。
+              {t(
+                "这会替换当前「{name}」的 {count} 条记录，不会合并。替换前的数据会保留一份，可从上方入口恢复。",
+                { name: state.profile.name, count: state.entries.length },
+              )}
             </T>
             <Button
               label="确认替换当前数据"

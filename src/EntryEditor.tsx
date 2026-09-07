@@ -244,13 +244,58 @@ export default function EntryEditor({
       </Text>
     </Pressable>
   );
+  const iconChoice = (
+    text: string,
+    icon: string,
+    selected: boolean,
+    press: () => void,
+  ) => (
+    <Pressable
+      key={text}
+      accessibilityRole="button"
+      accessibilityLabel={t(text)}
+      accessibilityState={{ selected }}
+      disabled={busy}
+      onPress={press}
+      style={({ pressed }) => [
+        s.iconChoice,
+        {
+          backgroundColor: selected ? accent : card,
+          borderColor: selected ? accent : palette.line,
+          opacity: pressed ? 0.72 : 1,
+        },
+      ]}
+    >
+      <Text
+        style={{
+          color: selected ? "#FFFFFF" : accent,
+          fontSize: 21,
+          lineHeight: 24,
+          fontWeight: "600",
+        }}
+      >
+        {icon}
+      </Text>
+      <Text
+        numberOfLines={1}
+        style={{
+          color: selected ? "#FFFFFF" : muted,
+          fontSize: 11,
+          lineHeight: 15,
+          fontWeight: selected ? "700" : "600",
+        }}
+      >
+        {t(text)}
+      </Text>
+    </Pressable>
+  );
   const feedMode = ({ kind, label: text }: (typeof feedOptions)[number]) => {
     const selected = draft.feedKind === kind;
     return (
       <Pressable
         key={kind}
         accessibilityRole="button"
-        accessibilityLabel={`喂养方式：${text}`}
+        accessibilityLabel={t("喂养方式：{kind}", { kind: t(text) })}
         accessibilityState={{ selected }}
         disabled={busy}
         onPress={() => setDraft({ ...draft, feedKind: kind })}
@@ -292,7 +337,7 @@ export default function EntryEditor({
           {Platform.OS === "web" ? (
             <>
               <TextInput
-                accessibilityLabel={`${title}日期`}
+                accessibilityLabel={t("{title}日期", { title: t(title) })}
                 editable={!busy}
                 value={fields.date}
                 onChangeText={(date) => update({ ...fields, date })}
@@ -301,7 +346,7 @@ export default function EntryEditor({
                 style={[inputStyle, { flex: 1.4 }]}
               />
               <TextInput
-                accessibilityLabel={`${title}时刻`}
+                accessibilityLabel={t("{title}时刻", { title: t(title) })}
                 editable={!busy}
                 value={fields.time}
                 onChangeText={(time) => update({ ...fields, time })}
@@ -409,7 +454,7 @@ export default function EntryEditor({
                 </Text>
               </View>
               <Pressable
-                accessibilityLabel="关闭记录编辑"
+                accessibilityLabel={t("关闭记录编辑")}
                 disabled={busy}
                 onPress={() => {
                   if (!saving.current) onClose();
@@ -431,7 +476,7 @@ export default function EntryEditor({
                     <View style={s.feedAmount}>
                       {label("实际喝奶量 · mL")}
                       <TextInput
-                        accessibilityLabel="实际喝奶量"
+                        accessibilityLabel={t("实际喝奶量")}
                         editable={!busy}
                         value={amount}
                         onChangeText={setAmount}
@@ -455,15 +500,15 @@ export default function EntryEditor({
               {entry.type === "diaper" && (
                 <View style={s.section}>
                   {label("尿布情况")}
-                  <View style={s.wrap}>
+                  <View style={s.optionRow}>
                     {(
                       [
-                        ["wet", "有尿"],
-                        ["dirty", "有便"],
-                        ["mixed", "尿 + 便"],
+                        ["wet", "有尿", "⌁"],
+                        ["dirty", "有便", "✦"],
+                        ["mixed", "尿 + 便", "◉"],
                       ] as const
-                    ).map(([kind, text]) =>
-                      chip(text, draft.diaperKind === kind, () =>
+                    ).map(([kind, text, icon]) =>
+                      iconChoice(text, icon, draft.diaperKind === kind, () =>
                         setDraft({ ...draft, diaperKind: kind }),
                       ),
                     )}
@@ -473,9 +518,11 @@ export default function EntryEditor({
               {entry.type === "sleep" && (
                 <View style={s.section}>
                   {label("睡眠状态")}
-                  <View style={s.wrap}>
-                    {chip("正在睡", !hasEnd, () => setHasEnd(false))}
-                    {chip("已睡醒 / 补录", hasEnd, () => setHasEnd(true))}
+                  <View style={s.optionRow}>
+                    {iconChoice("正在睡", "☾", !hasEnd, () => setHasEnd(false))}
+                    {iconChoice("已睡醒 / 补录", "✓", hasEnd, () =>
+                      setHasEnd(true),
+                    )}
                   </View>
                   <Text style={[s.hint, { color: muted }]}>
                     {t("保存开始时间后，关闭应用也不会丢失计时。")}
@@ -536,7 +583,7 @@ export default function EntryEditor({
                 <View style={s.section}>
                   {label("里程碑标题")}
                   <TextInput
-                    accessibilityLabel="里程碑标题"
+                    accessibilityLabel={t("里程碑标题")}
                     editable={!busy}
                     value={draft.title ?? ""}
                     onChangeText={(title) => setDraft({ ...draft, title })}
@@ -550,7 +597,7 @@ export default function EntryEditor({
               <View style={s.section}>
                 {label("备注 · 可选")}
                 <TextInput
-                  accessibilityLabel="备注"
+                  accessibilityLabel={t("备注")}
                   editable={!busy}
                   value={draft.note}
                   onChangeText={(note) => setDraft({ ...draft, note })}
@@ -566,7 +613,7 @@ export default function EntryEditor({
               </View>
               {!!error && (
                 <Text accessibilityRole="alert" style={s.error}>
-                  {error}
+                  {t(error)}
                 </Text>
               )}
               <Pressable
@@ -602,7 +649,7 @@ export default function EntryEditor({
                     style={{ padding: 14, alignSelf: "flex-end" }}
                   >
                     <Text style={{ color: accent, fontWeight: "700" }}>
-                      完成
+                      {t("完成")}
                     </Text>
                   </Pressable>
                 )}
@@ -670,6 +717,7 @@ const s = StyleSheet.create({
   label: { fontSize: 15, fontWeight: "600", marginBottom: 10 },
   row: { flexDirection: "row", gap: 12 },
   wrap: { flexDirection: "row", flexWrap: "wrap", gap: 9 },
+  optionRow: { flexDirection: "row", gap: 8 },
   feedModes: { flexDirection: "row", gap: 5, alignItems: "flex-start" },
   feedMode: { flex: 1, alignItems: "center", gap: 7, minWidth: 0 },
   feedModeIcon: {
@@ -695,6 +743,18 @@ const s = StyleSheet.create({
     paddingVertical: 13,
     borderRadius: 15,
     borderWidth: 1,
+  },
+  iconChoice: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 68,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 3,
+    paddingHorizontal: 5,
+    paddingVertical: 6,
   },
   input: {
     borderWidth: 1,

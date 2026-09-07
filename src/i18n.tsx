@@ -10,7 +10,6 @@ type TranslationValues = Record<string, string | number>;
 // adding another language a data change rather than a screen-by-screen rewrite.
 const english: Record<string, string> = {
   "LITTLE DAYS · 小日子": "LITTLE DAYS",
-  "● 仅此设备": "● This device",
   今天的小日子: "{name}'s little days",
   "每一天，都记得": "Every day remembered",
   慢慢长大的你: "Growing with you",
@@ -50,6 +49,9 @@ const english: Record<string, string> = {
   "补录睡眠 ›": "Add past sleep ›",
   "＋测量": "+ Measure",
   全部: "All",
+  体重: "Weight",
+  身长: "Length",
+  头围: "Head",
   "体重 kg": "Weight kg",
   "身长 cm": "Length cm",
   "头围 cm": "Head cm",
@@ -174,6 +176,9 @@ const english: Record<string, string> = {
     "Sleep spans are split across days; overlaps count once",
   一次混合尿布按一次更换统计: "A mixed diaper counts as one change",
   删除: "Delete",
+  编辑: "Edit",
+  "编辑{kind}": "Edit {kind}",
+  "删除{kind}": "Delete {kind}",
   更早的记录: "Earlier records",
   还没有: "No ",
   "先在「我的」设置出生日期，即可按月龄查看曲线。":
@@ -227,9 +232,23 @@ const english: Record<string, string> = {
     "Records restored; the photo was removed and existing reminders were kept. Please check them.",
   "无法读取本地数据，原数据没有被覆盖。":
     "Couldn't read local data; your existing data was not overwritten.",
+  "用「{name}」的 {count} 条记录替换当前数据？":
+    "Replace current data with {count} records from “{name}”?",
   "正在保存，请稍后再试": "Saving now. Please try again shortly.",
   记录日期不能早于出生日期: "A record cannot be earlier than the birth date.",
   "删除这条{kind}记录？": "Delete this {kind} record?",
+  "喂养方式：{kind}": "Feeding method: {kind}",
+  "{title}日期": "{title} date",
+  "{title}时刻": "{title} time",
+  完成: "Done",
+  备份文件: "Backup file",
+  上次替换前的数据: "Data before last replacement",
+  "确认恢复：{source}": "Restore: {source}",
+  "{name} · {count} 条记录": "{name} · {count} records",
+  "这会替换当前「{name}」的 {count} 条记录，不会合并。替换前的数据会保留一份，可从上方入口恢复。":
+    "This replaces the {count} current records for “{name}”; it does not merge them. A copy of the replaced data remains available above.",
+  "统计图，单位{unit}，数值见每日汇总和明细":
+    "Chart in {unit}; values appear in the daily summary and details.",
   "记录已删除，可撤销": "Record deleted — you can undo this",
   没有恢复副本: "No recovery copy available",
   语言已保存: "Language saved",

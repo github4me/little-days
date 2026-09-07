@@ -130,35 +130,68 @@ export function Chips({
   options,
   value,
   onChange,
+  iconized = false,
+  compact = false,
 }: {
-  options: { label: string; value: string }[];
+  options: { label: string; value: string; icon?: string }[];
   value: string;
   onChange: (v: string) => void;
+  iconized?: boolean;
+  compact?: boolean;
 }) {
   const c = useContext(Theme);
   const { t } = useI18n();
   return (
-    <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+    <View
+      style={{
+        flexDirection: "row",
+        gap: 8,
+        flexWrap: iconized ? "nowrap" : "wrap",
+      }}
+    >
       {options.map((o) => (
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel={t(o.label)}
           accessibilityState={{ selected: value === o.value }}
           key={o.value}
           onPress={() => onChange(o.value)}
           style={{
-            minHeight: 44,
+            flex: iconized && !compact ? 1 : undefined,
+            minWidth: iconized && !compact ? 0 : undefined,
+            minHeight: iconized ? (compact ? 52 : 68) : 44,
+            flexDirection: compact ? "row" : "column",
+            gap: iconized ? (compact ? 5 : 2) : 0,
+            alignItems: "center",
             justifyContent: "center",
-            borderRadius: 14,
-            paddingHorizontal: 14,
+            borderRadius: iconized ? (compact ? 14 : 18) : 14,
+            paddingHorizontal: iconized ? (compact ? 10 : 5) : 14,
+            paddingVertical: iconized && !compact ? 6 : undefined,
             backgroundColor: value === o.value ? c.soft : c.card,
             borderWidth: 1,
             borderColor: value === o.value ? c.primary : c.line,
           }}
         >
+          {iconized && o.icon ? (
+            <T
+              raw
+              style={{
+                color: value === o.value ? c.primary : c.muted,
+                fontSize: compact ? 16 : 21,
+                lineHeight: compact ? 20 : 24,
+                fontWeight: "600",
+              }}
+            >
+              {o.icon}
+            </T>
+          ) : null}
           <T
+            numberOfLines={1}
             style={{
-              fontSize: 13,
-              fontWeight: value === o.value ? "700" : "400",
+              color: value === o.value ? c.primary : c.muted,
+              fontSize: iconized ? (compact ? 12 : 11) : 13,
+              lineHeight: iconized ? (compact ? 16 : 15) : undefined,
+              fontWeight: value === o.value ? "700" : "500",
             }}
           >
             {t(o.label)}
