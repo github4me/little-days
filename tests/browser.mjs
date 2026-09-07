@@ -347,6 +347,8 @@ await page.getByText("Last 7 days", { exact: true }).waitFor();
 await assertNoUntranslatedChinese("Records");
 await page.getByRole("button", { name: "Diaper", exact: true }).click();
 await page.getByText("1 changes · 1 pee · 1 poo", { exact: true }).waitFor();
+await page.getByText("changes", { exact: true }).waitFor();
+await assertNoUntranslatedChinese("Diaper records");
 await page.setViewportSize({ width: 340, height: 740 });
 await page.getByRole("tab", { name: "Growth", exact: true }).click();
 await page.getByText("Growth charts", { exact: true }).waitFor();
@@ -369,6 +371,14 @@ assert.equal(
 );
 await page.getByRole("tab", { name: "Records", exact: true }).click();
 await page.getByText("Last 7 days", { exact: true }).waitFor();
+const narrowRecordsHeading = await page
+  .getByText("Every day remembered", { exact: true })
+  .boundingBox();
+assert.ok(narrowRecordsHeading);
+assert.ok(
+  narrowRecordsHeading.x + narrowRecordsHeading.width <= 320,
+  "records heading should fit the narrow screen content",
+);
 const narrowRecordKindOptions = await Promise.all(
   ["Feed", "Diaper", "Sleep"].map((name) =>
     page.getByRole("button", { name, exact: true }).boundingBox(),

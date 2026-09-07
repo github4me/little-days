@@ -7,6 +7,7 @@ import {
   AppState,
   Image,
   Platform,
+  useWindowDimensions,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -128,6 +129,7 @@ function BabyApp({
   language: LanguagePreference;
   onLanguageChange: (language: LanguagePreference) => Promise<void>;
 }) {
+  const compactTitle = useWindowDimensions().width < 360;
   const [darkMode, setDarkMode] = useState(false);
   const c = darkMode ? dark : light;
   const [state, setState] = useState<State | null>(null),
@@ -437,7 +439,12 @@ function BabyApp({
                   <T
                     style={[
                       heading,
-                      { marginTop: 6, fontSize: 28, lineHeight: 36 },
+                      {
+                        marginTop: 6,
+                        fontSize: compactTitle ? 24 : 28,
+                        lineHeight: compactTitle ? 31 : 36,
+                        flexShrink: 1,
+                      },
                     ]}
                   >
                     {tab === "today"

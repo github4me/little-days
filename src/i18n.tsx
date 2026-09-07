@@ -272,6 +272,7 @@ const english: Record<string, string> = {
   "本地提醒需要在 iPhone 或 Android 真机中设置，网页预览不支持。":
     "Local reminders need an installed iPhone or Android app; the web preview does not support them.",
   小时: "hours",
+  次: "changes",
   分钟: "min",
   天: " days",
   "{name}的小日子": "{name}'s little days",
