@@ -4,6 +4,7 @@ import Svg, { Path, Line, Circle, Text as SvgText } from "react-native-svg";
 import { Entry, State } from "./domain";
 import { referenceSeries, type GrowthMetric } from "./growth";
 import { dark, T, Theme } from "./ui";
+import { t } from "./i18n";
 
 export type Metric = GrowthMetric | "all";
 
@@ -68,7 +69,7 @@ function GrowthPlot({
         style={{ height: compact ? 94 : undefined, justifyContent: "center" }}
       >
         <T style={{ color: c.muted, fontSize: 12 }}>
-          还没有{labels[metric]}记录
+          {t("还没有{metric}记录", { metric: t(labels[metric]) })}
         </T>
       </View>
     );
@@ -96,7 +97,7 @@ function GrowthPlot({
       width="100%"
       height={height}
       viewBox={`0 0 340 ${height}`}
-      accessibilityLabel={`${labels[metric]}生长曲线，详细数值见下方记录`}
+      accessibilityLabel={`${t(labels[metric])} ${t("成长曲线")}`}
     >
       {[0, 1, 2, 3].map((index) => {
         const value = min + (index * range) / 3;
@@ -159,7 +160,7 @@ function GrowthPlot({
           fontSize={compact ? 10 : 11}
           textAnchor="middle"
         >
-          {((index * maxMonth) / 3).toFixed(0)}月
+          {t("{months}月", { months: ((index * maxMonth) / 3).toFixed(0) })}
         </SvgText>
       ))}
     </Svg>
@@ -232,10 +233,13 @@ export default function GrowthChart({
         ● 宝宝实测　— WHO P50　┄ P3 / P15 / P85 / P97
       </T>
       <T style={{ color: c.muted, fontSize: 12 }}>
-        {profile.sex === "unspecified"
-          ? "设置性别后显示参考线。"
-          : "WHO 0–24月参考；月龄按天数 ÷ 30.4375 展示。"}{" "}
-        曲线用于记录趋势，不作诊断。
+        {t("{reference} 曲线用于记录趋势，不作诊断。", {
+          reference: t(
+            profile.sex === "unspecified"
+              ? "设置性别后显示参考线。"
+              : "WHO 0–24月参考；月龄按天数 ÷ 30.4375 展示。",
+          ),
+        })}
       </T>
     </View>
   );

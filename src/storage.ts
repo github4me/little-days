@@ -4,6 +4,7 @@ import {
   parseReminderSettings,
   type ReminderSettings,
 } from "./reminderSettings";
+import type { LanguagePreference } from "./i18n";
 let database: ReturnType<typeof SQLite.openDatabaseAsync> | undefined;
 async function db() {
   if (!database)
@@ -76,6 +77,26 @@ export async function saveTheme(dark: boolean) {
     String(dark),
   );
 }
+export async function loadLanguage(): Promise<LanguagePreference | null> {
+  const row = await (
+    await db()
+  ).getFirstAsync<{ value: string }>(
+    "SELECT value FROM app_data WHERE key = ?",
+    "language",
+  );
+  return row && ["system", "zh", "en"].includes(row.value)
+    ? (row.value as LanguagePreference)
+    : null;
+}
+export async function saveLanguage(language: LanguagePreference) {
+  await (
+    await db()
+  ).runAsync(
+    "INSERT OR REPLACE INTO app_data (key,value) VALUES (?,?)",
+    "language",
+    language,
+  );
+}
 export async function loadReminderSettings(): Promise<ReminderSettings | null> {
   const row = await (
     await db()
@@ -109,7 +130,7 @@ export async function loadAutoFeedReminder(): Promise<ReminderSettings | null> {
   );
   try {
     const settings = row ? parseReminderSettings(JSON.parse(row.value)) : null;
-    return settings?.kind === "喂养" && settings.mode === "after-feed"
+    return settings?.kind === "feed" && settings.mode === "after-feed"
       ? settings
       : null;
   } catch {
@@ -118,7 +139,7 @@ export async function loadAutoFeedReminder(): Promise<ReminderSettings | null> {
 }
 export async function saveAutoFeedReminder(settings: ReminderSettings) {
   const checked = parseReminderSettings(settings);
-  if (checked?.kind !== "喂养" || checked.mode !== "after-feed")
+  if (checked?.kind !== "feed" || checked.mode !== "after-feed")
     throw new Error("跟随喂养设置无效");
   await (
     await db()

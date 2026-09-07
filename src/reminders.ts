@@ -12,6 +12,7 @@ import {
   loadAutoFeedReminder,
   saveAutoFeedReminder,
 } from "./storage";
+import { formatDate, t } from "./i18n";
 
 export type Reminder = {
   id: string;
@@ -32,13 +33,13 @@ Notifications.setNotificationHandler({
 
 function validMinutes(minutes: number) {
   if (!Number.isFinite(minutes) || minutes < 1 || minutes > 10080)
-    throw new Error("请填写 1–10080 分钟");
+    throw new Error(t("请填写 1–10080 分钟"));
 }
 
 async function prepareChannel(silent: boolean) {
   if (Platform.OS === "android")
     await Notifications.setNotificationChannelAsync(silent ? "quiet" : "care", {
-      name: silent ? "安静提醒" : "照护提醒",
+      name: silent ? t("安静提醒") : t("照护提醒"),
       importance: Notifications.AndroidImportance.DEFAULT,
       sound: silent ? null : "default",
     });
@@ -51,11 +52,20 @@ async function requirePermission() {
     !permission.granted &&
     permission.ios?.status !== Notifications.IosAuthorizationStatus.PROVISIONAL
   )
-    throw new Error("请在手机设置中允许通知后再试");
+    throw new Error(t("请在手机设置中允许通知后再试"));
 }
 
 function autoFeedDetail(time: number) {
-  return `随最新喂养 · ${new Date(time).toLocaleString("zh-CN")}`;
+  return t("随最新喂养 · {time}", {
+    time: formatDate(time, {
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }),
+  });
 }
 
 async function scheduleAutoFeedReminder(
@@ -69,12 +79,12 @@ async function scheduleAutoFeedReminder(
   return Notifications.scheduleNotificationAsync({
     content: {
       title,
-      body: "距离上次喂养已到设定间隔。",
+      body: t("距离上次喂养已到设定间隔。"),
       sound: silent ? false : "default",
       data: {
         detail,
         reminderMode: autoFeedMode,
-        reminderKind: "喂养",
+        reminderKind: "feed",
         minutes,
         dailyTime: "",
         silent,
@@ -90,7 +100,7 @@ async function scheduleAutoFeedReminder(
 
 export async function listReminders(): Promise<Reminder[]> {
   return (await Notifications.getAllScheduledNotificationsAsync()).map((n) => {
-    const title = n.content.title ?? "照护提醒";
+    const title = n.content.title ?? t("照护提醒");
     return {
       id: n.identifier,
       title,
@@ -114,7 +124,7 @@ export async function addReminder(
   minutes: number,
   dailyTime?: string,
   silent = true,
-  kind: ReminderKind = "喂养",
+  kind: ReminderKind = "feed",
 ) {
   const channelId = await prepareChannel(silent);
   await requirePermission();
@@ -122,7 +132,7 @@ export async function addReminder(
   let detail: string;
   if (dailyTime) {
     if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(dailyTime))
-      throw new Error("时间格式应为 HH:mm");
+      throw new Error(t("时间格式应为 HH:mm"));
     const [hour, minute] = dailyTime.split(":").map(Number);
     trigger = {
       type: Notifications.SchedulableTriggerInputTypes.DAILY,
@@ -130,7 +140,7 @@ export async function addReminder(
       minute,
       channelId,
     };
-    detail = `每天 ${dailyTime}`;
+    detail = t("每天 {time}", { time: dailyTime });
   } else {
     validMinutes(minutes);
     const date = new Date(Date.now() + minutes * 60000);
@@ -139,12 +149,19 @@ export async function addReminder(
       date,
       channelId,
     };
-    detail = date.toLocaleString("zh-CN");
+    detail = formatDate(date, {
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
   }
   await Notifications.scheduleNotificationAsync({
     content: {
       title,
-      body: "按宝宝当下的需要安排照护。",
+      body: t("按宝宝当下的需要安排照护。"),
       sound: silent ? false : "default",
       data: {
         detail,
@@ -167,10 +184,10 @@ export async function addAutoFeedReminder(
 ) {
   validMinutes(minutes);
   const time = feedReminderTime(entries, minutes);
-  if (time === null) throw new Error("请先保存一条喂养记录，再启用自动提醒");
+  if (time === null) throw new Error(t("请先保存一条喂养记录，再启用自动提醒"));
   await requirePermission();
   await saveAutoFeedReminder({
-    kind: "喂养",
+    kind: "feed",
     mode: "after-feed",
     title,
     minutes,
@@ -188,7 +205,7 @@ export async function rescheduleAutoFeedReminders(entries: Entry[]) {
   const legacySettings = automatic
     .map((reminder) =>
       settingsFromReminderData(
-        reminder.content.title ?? "喂养提醒",
+        reminder.content.title ?? t("喂养提醒"),
         reminder.content.data,
       ),
     )

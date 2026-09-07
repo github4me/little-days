@@ -18,6 +18,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import Svg, { Path, Rect } from "react-native-svg";
 import { light, dark as night } from "./ui";
 import { Entry, makeId, validateEntry } from "./domain";
+import { t } from "./i18n";
 
 const names = {
   feed: "喂养",
@@ -134,7 +135,7 @@ function localFields(iso: string) {
 }
 function localISO(date: string, time: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time))
-    throw new Error("时间格式应为 YYYY-MM-DD 和 HH:mm");
+    throw new Error(t("时间格式应为 YYYY-MM-DD 和 HH:mm"));
   const [y, m, day] = date.split("-").map(Number),
     [h, min] = time.split(":").map(Number);
   const d = new Date(y, m - 1, day, h, min);
@@ -145,7 +146,7 @@ function localISO(date: string, time: string) {
     d.getHours() !== h ||
     d.getMinutes() !== min
   )
-    throw new Error("日期或时间无效，请检查输入");
+    throw new Error(t("日期或时间无效，请检查输入"));
   return d.toISOString();
 }
 export function newEntry(type: Entry["type"]): Entry {
@@ -209,7 +210,7 @@ export default function EntryEditor({
     },
   ];
   const label = (text: string) => (
-    <Text style={[s.label, { color: ink }]}>{text}</Text>
+    <Text style={[s.label, { color: ink }]}>{t(text)}</Text>
   );
   const chip = (
     text: string,
@@ -239,7 +240,7 @@ export default function EntryEditor({
           fontWeight: "600",
         }}
       >
-        {text}
+        {t(text)}
       </Text>
     </Pressable>
   );
@@ -276,7 +277,7 @@ export default function EntryEditor({
             },
           ]}
         >
-          {text}
+          {t(text)}
         </Text>
       </Pressable>
     );
@@ -358,10 +359,10 @@ export default function EntryEditor({
         Date.parse(result.start) > Date.now() + 60000 ||
         (result.end && Date.parse(result.end) > Date.now() + 60000)
       )
-        throw new Error("请填写已经发生的时间");
+        throw new Error(t("请填写已经发生的时间"));
       if (entry.type === "feed") {
         if (bottle) {
-          if (!amount.trim()) throw new Error("请填写实际喝奶量");
+          if (!amount.trim()) throw new Error(t("请填写实际喝奶量"));
           result.amount = Number(amount);
         } else delete result.amount;
       }
@@ -375,7 +376,7 @@ export default function EntryEditor({
       }
       await onSave(validateEntry(result));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "保存失败，请重试");
+      setError(e instanceof Error ? e.message : t("保存失败，请重试"));
     } finally {
       saving.current = false;
       setBusy(false);
@@ -401,10 +402,10 @@ export default function EntryEditor({
             <View style={s.header}>
               <View>
                 <Text style={[s.kicker, { color: accent }]}>
-                  每一刻，都值得记住
+                  {t("每一刻，都值得记住")}
                 </Text>
                 <Text style={[s.title, { color: ink }]}>
-                  {names[entry.type]}
+                  {t(names[entry.type])}
                 </Text>
               </View>
               <Pressable
@@ -477,7 +478,7 @@ export default function EntryEditor({
                     {chip("已睡醒 / 补录", hasEnd, () => setHasEnd(true))}
                   </View>
                   <Text style={[s.hint, { color: muted }]}>
-                    保存开始时间后，关闭应用也不会丢失计时。
+                    {t("保存开始时间后，关闭应用也不会丢失计时。")}
                   </Text>
                 </View>
               )}
@@ -523,7 +524,7 @@ export default function EntryEditor({
                         value={value}
                         onChangeText={update}
                         keyboardType="decimal-pad"
-                        placeholder="未填写"
+                        placeholder={t("未填写")}
                         placeholderTextColor={muted}
                         style={inputStyle}
                       />
@@ -540,7 +541,7 @@ export default function EntryEditor({
                     value={draft.title ?? ""}
                     onChangeText={(title) => setDraft({ ...draft, title })}
                     maxLength={200}
-                    placeholder="例如：第一次对我笑"
+                    placeholder={t("例如：第一次对我笑")}
                     placeholderTextColor={muted}
                     style={inputStyle}
                   />
@@ -555,7 +556,7 @@ export default function EntryEditor({
                   onChangeText={(note) => setDraft({ ...draft, note })}
                   multiline
                   maxLength={10000}
-                  placeholder="记下一点小细节…"
+                  placeholder={t("记下一点小细节…")}
                   placeholderTextColor={muted}
                   style={[
                     inputStyle,
@@ -581,14 +582,16 @@ export default function EntryEditor({
                   <ActivityIndicator color="#FFFFFF" />
                 ) : (
                   <Text style={s.saveText}>
-                    {entry.type === "sleep" && !hasEnd
-                      ? "保存 · 继续计时"
-                      : "保存记录"}
+                    {t(
+                      entry.type === "sleep" && !hasEnd
+                        ? "保存 · 继续计时"
+                        : "保存记录",
+                    )}
                   </Text>
                 )}
               </Pressable>
               <Text style={[s.footer, { color: muted }]}>
-                仅保存在这台设备 · 无需联网
+                {t("仅保存在这台设备 · 无需联网")}
               </Text>
             </ScrollView>
             {picker && Platform.OS !== "web" && (

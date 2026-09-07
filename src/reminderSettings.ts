@@ -1,4 +1,4 @@
-export type ReminderKind = "喂养" | "换尿布" | "睡眠";
+export type ReminderKind = "feed" | "diaper" | "sleep";
 export type ReminderMode = "once" | "daily" | "after-feed";
 export type ReminderSettings = {
   kind: ReminderKind;
@@ -9,11 +9,19 @@ export type ReminderSettings = {
   silent: boolean;
 };
 
+function normalizeKind(value: unknown): ReminderKind | null {
+  if (value === "feed" || value === "喂养") return "feed";
+  if (value === "diaper" || value === "换尿布") return "diaper";
+  if (value === "sleep" || value === "睡眠") return "sleep";
+  return null;
+}
+
 export function parseReminderSettings(value: unknown): ReminderSettings | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const input = value as Record<string, unknown>;
+  const kind = normalizeKind(input.kind);
   if (
-    !["喂养", "换尿布", "睡眠"].includes(input.kind as string) ||
+    !kind ||
     !["once", "daily", "after-feed"].includes(input.mode as string) ||
     typeof input.title !== "string" ||
     input.title.length > 100 ||
@@ -25,14 +33,14 @@ export function parseReminderSettings(value: unknown): ReminderSettings | null {
     typeof input.silent !== "boolean"
   )
     return null;
-  if (input.mode === "after-feed" && input.kind !== "喂养") return null;
+  if (input.mode === "after-feed" && kind !== "feed") return null;
   if (
     input.mode === "daily" &&
     !/^([01]\d|2[0-3]):[0-5]\d$/.test(input.dailyTime)
   )
     return null;
   if (input.mode !== "daily" && input.dailyTime !== "") return null;
-  return input as ReminderSettings;
+  return { ...input, kind } as ReminderSettings;
 }
 
 export function settingsFromReminderData(
@@ -40,7 +48,7 @@ export function settingsFromReminderData(
   data: Record<string, unknown> | undefined,
 ): ReminderSettings | undefined {
   const mode = data?.reminderMode;
-  const kind = data?.reminderKind ?? (mode === "after-feed" ? "喂养" : "");
+  const kind = data?.reminderKind ?? (mode === "after-feed" ? "feed" : "");
   return (
     parseReminderSettings({
       kind,

@@ -37,7 +37,8 @@
           "cameraPermission": false,
           "microphonePermission": false
         }
-      ]
+      ],
+      "expo-localization"
     ],
     "web": {
       "bundler": "metro"

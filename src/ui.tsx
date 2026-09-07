@@ -8,6 +8,7 @@ import {
   ViewStyle,
   KeyboardTypeOptions,
 } from "react-native";
+import { useI18n } from "./i18n";
 export const light = {
   bg: "#F4F9FD",
   card: "#FFFFFF",
@@ -40,15 +41,17 @@ export const Theme = createContext(light);
 export function T({
   children,
   style,
+  raw = false,
   ...props
-}: React.ComponentProps<typeof Text>) {
+}: React.ComponentProps<typeof Text> & { raw?: boolean }) {
   const c = useContext(Theme);
+  const { t } = useI18n();
   return (
     <Text
       {...props}
       style={[{ color: c.text, fontSize: 15, lineHeight: 23 }, style]}
     >
-      {children}
+      {typeof children === "string" && !raw ? t(children) : children}
     </Text>
   );
 }
@@ -92,10 +95,11 @@ export function Button({
   style?: ViewStyle;
 }) {
   const c = useContext(Theme);
+  const { t } = useI18n();
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={t(label)}
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [
@@ -117,7 +121,7 @@ export function Button({
           fontWeight: "600",
         }}
       >
-        {label}
+        {t(label)}
       </T>
     </Pressable>
   );
@@ -132,6 +136,7 @@ export function Chips({
   onChange: (v: string) => void;
 }) {
   const c = useContext(Theme);
+  const { t } = useI18n();
   return (
     <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
       {options.map((o) => (
@@ -156,7 +161,7 @@ export function Chips({
               fontWeight: value === o.value ? "700" : "400",
             }}
           >
-            {o.label}
+            {t(o.label)}
           </T>
         </Pressable>
       ))}
@@ -179,14 +184,17 @@ export function Field({
   maxLength?: number;
 }) {
   const c = useContext(Theme);
+  const { t } = useI18n();
   return (
     <View style={{ gap: 6 }}>
-      <T style={{ color: c.muted, fontSize: 13 }}>{label}</T>
+      <T raw style={{ color: c.muted, fontSize: 13 }}>
+        {t(label)}
+      </T>
       <TextInput
-        accessibilityLabel={label}
+        accessibilityLabel={t(label)}
         value={value}
         onChangeText={onChange}
-        placeholder={placeholder}
+        placeholder={placeholder ? t(placeholder) : undefined}
         placeholderTextColor={c.muted}
         keyboardType={keyboardType}
         style={{

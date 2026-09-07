@@ -6,7 +6,7 @@ import {
 } from "./reminderSettings";
 
 const automatic = {
-  kind: "喂养",
+  kind: "feed",
   mode: "after-feed",
   title: "喂养提醒",
   minutes: 120,
@@ -19,11 +19,15 @@ test("reminder settings round-trip only supported configurations", () => {
   assert.deepEqual(
     parseReminderSettings({
       ...automatic,
-      kind: "睡眠",
+      kind: "sleep",
       mode: "daily",
       dailyTime: "21:30",
     }),
-    { ...automatic, kind: "睡眠", mode: "daily", dailyTime: "21:30" },
+    { ...automatic, kind: "sleep", mode: "daily", dailyTime: "21:30" },
+  );
+  assert.deepEqual(
+    parseReminderSettings({ ...automatic, kind: "喂养" }),
+    automatic,
   );
   assert.deepEqual(
     settingsFromReminderData("喂养提醒", {
@@ -40,7 +44,7 @@ test("reminder settings reject incomplete, invalid, and incompatible values", ()
     null,
     { ...automatic, minutes: 0 },
     { ...automatic, silent: "yes" },
-    { ...automatic, kind: "睡眠" },
+    { ...automatic, kind: "sleep" },
     { ...automatic, mode: "daily", dailyTime: "9:30" },
   ])
     assert.equal(parseReminderSettings(value), null);

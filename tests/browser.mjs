@@ -15,6 +15,10 @@ const context = await browser.newContext({
   timezoneId: "Australia/Melbourne",
 });
 const page = await context.newPage();
+page.setDefaultTimeout(8000);
+await page.addInitScript(() => {
+  localStorage.setItem("little-days-v1-language", "zh");
+});
 const fontDir = process.env.SCREENSHOT_FONT_DIR;
 const fontCSS = fontDir
   ? (await fs.readFile(path.join(fontDir, "400.css"), "utf8")).replaceAll(
@@ -201,10 +205,13 @@ assert.equal(await page.getByLabel("宝宝名字", { exact: true }).count(), 0);
 await page.getByRole("button", { name: "展开宝宝档案", exact: true }).click();
 await page.getByLabel("宝宝名字", { exact: true }).waitFor();
 await page.getByRole("switch", { name: "夜间模式", exact: true }).click();
-await page.getByRole("tab", { name: "今天", exact: true }).click();
+await page.getByRole("button", { name: "English", exact: true }).click();
+await page.getByText("Care reminders", { exact: true }).waitFor();
+await page.getByRole("tab", { name: "Today", exact: true }).click();
+await page.getByText("测试宝宝's little days", { exact: true }).waitFor();
 await page.evaluate(() => document.fonts.ready);
 await page.screenshot({ path: "docs/night-preview.png" });
-await page.getByRole("tab", { name: "记录", exact: true }).click();
+await page.getByRole("tab", { name: "Records", exact: true }).click();
 await page.setViewportSize({ width: 340, height: 740 });
 assert.equal(
   await page.evaluate(

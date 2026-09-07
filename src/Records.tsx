@@ -1,19 +1,15 @@
 import React, { useContext, useState } from "react";
 import { View, Pressable } from "react-native";
 import Svg, { Rect, Line, Text as Label } from "react-native-svg";
-import { Entry, elapsedLabel, summarize } from "./domain";
+import { Entry, summarize } from "./domain";
 import { Theme, T, Card, Chips, Button, row } from "./ui";
+import { elapsed, formatDate, formatTime, t } from "./i18n";
 type Kind = "feed" | "diaper" | "sleep";
 const dayKey = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const midnight = (d: Date) =>
   new Date(d.getFullYear(), d.getMonth(), d.getDate());
-const clock = (iso: string) =>
-  new Date(iso).toLocaleTimeString("zh-CN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
+const clock = (iso: string) => formatTime(iso);
 const colors = ["#99CBEA", "#AAD7CD", "#C7B9E5"];
 type Bar = { x: number; value: number; color: string; label?: string };
 function Bars({
@@ -257,8 +253,11 @@ export default function Records({
       {!days.length ? (
         <Card>
           <T style={{ color: c.muted }}>
-            还没有
-            {kind === "feed" ? "喂奶" : kind === "sleep" ? "睡眠" : "尿布"}记录
+            {t("还没有{kind}记录", {
+              kind: t(
+                kind === "feed" ? "喂奶" : kind === "sleep" ? "睡眠" : "尿布",
+              ),
+            })}
           </T>
         </Card>
       ) : null}
@@ -274,7 +273,7 @@ export default function Records({
         return (
           <View key={dayKey(date)} style={{ gap: 10 }}>
             <T style={{ fontSize: 17, fontWeight: "600" }}>
-              {date.toLocaleDateString("zh-CN", {
+              {formatDate(date, {
                 month: "long",
                 day: "numeric",
                 weekday: "long",
@@ -286,10 +285,21 @@ export default function Records({
             <Card>
               <T style={{ fontSize: 16, color: c.muted }}>
                 {kind === "feed"
-                  ? `${events.length} 次喂奶 · ${s.feedMl} mL · ${elapsedLabel(minutes * 60000)}`
+                  ? t("{count} 次喂奶 · {amount} mL · {duration}", {
+                      count: events.length,
+                      amount: s.feedMl,
+                      duration: elapsed(minutes * 60000),
+                    })
                   : kind === "sleep"
-                    ? `${events.length} 段睡眠 · ${elapsedLabel(s.sleepMinutes * 60000)}`
-                    : `${s.diaperCount} 次更换 · 有尿 ${s.wetCount} 次 · 有便 ${s.dirtyCount} 次`}
+                    ? t("{count} 段睡眠 · {duration}", {
+                        count: events.length,
+                        duration: elapsed(s.sleepMinutes * 60000),
+                      })
+                    : t("{count} 次更换 · 有尿 {wet} 次 · 有便 {dirty} 次", {
+                        count: s.diaperCount,
+                        wet: s.wetCount,
+                        dirty: s.dirtyCount,
+                      })}
               </T>
               <Bars
                 values
@@ -312,7 +322,7 @@ export default function Records({
                     color: color(e),
                     label:
                       kind === "feed" && unit === "mL"
-                        ? String(e.amount ?? "亲喂")
+                        ? String(e.amount ?? t("亲喂"))
                         : undefined,
                   };
                 })}
@@ -344,19 +354,19 @@ export default function Records({
                         <T style={{ fontWeight: "600" }}>
                           {clock(e.start)}
                           {kind === "sleep"
-                            ? `–${e.end ? clock(e.end) : "正在睡"}`
+                            ? `–${e.end ? clock(e.end) : t("正在睡")}`
                             : ""}
                         </T>
                         <T>
                           {kind === "feed"
                             ? e.amount !== undefined
                               ? `${e.amount} mL`
-                              : "亲喂"
+                              : t("亲喂")
                             : kind === "diaper"
                               ? { wet: "尿", dirty: "便", mixed: "尿＋便" }[
                                   e.diaperKind!
                                 ]
-                              : elapsedLabel(
+                              : elapsed(
                                   Date.parse(
                                     e.end ?? new Date(now).toISOString(),
                                   ) - Date.parse(e.start),
@@ -365,27 +375,28 @@ export default function Records({
                         <T style={{ color: c.muted, fontSize: 12 }}>
                           {kind === "feed"
                             ? e.end
-                              ? elapsedLabel(
-                                  Date.parse(e.end) - Date.parse(e.start),
-                                )
-                              : "未记时长"
-                            : "编辑 ›"}
+                              ? elapsed(Date.parse(e.end) - Date.parse(e.start))
+                              : t("未记时长")
+                            : t("编辑 ›")}
                         </T>
                       </View>
                       {kind === "feed" ? (
                         <T style={{ fontSize: 12, color: c.muted }}>
-                          距上次{" "}
-                          {prev
-                            ? elapsedLabel(
-                                Date.parse(e.start) - Date.parse(prev.start),
-                              )
-                            : "—"}
+                          {t("距上次 {duration}", {
+                            duration: prev
+                              ? elapsed(
+                                  Date.parse(e.start) - Date.parse(prev.start),
+                                )
+                              : "—",
+                          })}
                         </T>
                       ) : null}
                       {kind === "sleep" &&
                       dayKey(new Date(e.start)) !== dayKey(date) ? (
                         <T style={{ fontSize: 12, color: c.muted }}>
-                          开始于 {dayKey(new Date(e.start))}；本日时长见汇总
+                          {t("开始于 {date}；本日时长见汇总", {
+                            date: dayKey(new Date(e.start)),
+                          })}
                         </T>
                       ) : null}
                       {e.note ? (

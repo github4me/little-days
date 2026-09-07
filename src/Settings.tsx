@@ -18,6 +18,13 @@ import {
 } from "./reminders";
 import { type ReminderMode, type ReminderSettings } from "./reminderSettings";
 import { copyAvatarFile, deleteAvatarFile } from "./avatar";
+import { t, type LanguagePreference } from "./i18n";
+
+const reminderKindLabels = {
+  feed: "喂养",
+  diaper: "换尿布",
+  sleep: "睡眠",
+} as const;
 
 export default function Settings({
   state,
@@ -26,6 +33,8 @@ export default function Settings({
   onCommit,
   darkMode,
   onDarkMode,
+  language,
+  onLanguageChange,
 }: {
   state: State;
   avatarUri: string | null;
@@ -33,6 +42,8 @@ export default function Settings({
   onCommit: (next: State, recovery?: boolean) => Promise<void>;
   darkMode: boolean;
   onDarkMode: (v: boolean) => void;
+  language: LanguagePreference;
+  onLanguageChange: (language: LanguagePreference) => Promise<void>;
 }) {
   const c = useContext(Theme);
   const [name, setName] = useState(state.profile.name),
@@ -50,7 +61,7 @@ export default function Settings({
   const [mode, setMode] = useState<ReminderMode>("once"),
     [minutes, setMinutes] = useState("120"),
     [dailyTime, setDailyTime] = useState("09:00"),
-    [kind, setKind] = useState<ReminderSettings["kind"]>("喂养"),
+    [kind, setKind] = useState<ReminderSettings["kind"]>("feed"),
     [title, setTitle] = useState(""),
     [silent, setSilent] = useState(true);
   function applyReminderSettings(settings: ReminderSettings) {
@@ -283,6 +294,26 @@ export default function Settings({
         ) : null}
       </Card>
       <Card>
+        <T style={{ fontSize: 18, fontWeight: "700" }}>语言</T>
+        <T style={{ color: c.muted, fontSize: 13 }}>
+          跟随系统语言，或在这里固定选择显示语言。
+        </T>
+        <Chips
+          value={language}
+          options={[
+            { label: "跟随系统", value: "system" },
+            { label: "简体中文", value: "zh" },
+            { label: "English", value: "en" },
+          ]}
+          onChange={(next) =>
+            void run(async () => {
+              await onLanguageChange(next as LanguagePreference);
+              setMessage(t("语言已保存"));
+            })
+          }
+        />
+      </Card>
+      <Card>
         <View style={row}>
           <View>
             <T style={{ fontSize: 18, fontWeight: "700" }}>夜间模式</T>
@@ -300,7 +331,7 @@ export default function Settings({
       <Card>
         <T style={{ fontSize: 18, fontWeight: "700" }}>照护提醒</T>
         <T style={{ color: c.muted, fontSize: 13 }}>
-          {kind === "喂养"
+          {kind === "feed"
             ? "跟随模式会在每次保存喂奶后，按最新开始时间安排下一次提醒。"
             : "按自己的需要设置。间隔提醒从现在算起，只提醒一次。"}
         </T>
@@ -313,9 +344,9 @@ export default function Settings({
             <View pointerEvents={busy ? "none" : "auto"} style={{ gap: 13 }}>
               <View style={{ flexDirection: "row", gap: 10 }}>
                 {[
-                  { value: "喂养", icon: "◒" },
-                  { value: "换尿布", icon: "♧" },
-                  { value: "睡眠", icon: "☾" },
+                  { value: "feed", icon: "◒" },
+                  { value: "diaper", icon: "♧" },
+                  { value: "sleep", icon: "☾" },
                 ].map(({ value, icon }) => {
                   const selected = kind === value;
                   return (
@@ -327,7 +358,7 @@ export default function Settings({
                       onPress={() => {
                         const next = value as ReminderSettings["kind"];
                         setKind(next);
-                        if (next !== "喂养" && mode === "after-feed")
+                        if (next !== "feed" && mode === "after-feed")
                           setMode("once");
                       }}
                       style={({ pressed }) => [
@@ -360,7 +391,7 @@ export default function Settings({
                           fontWeight: selected ? "700" : "400",
                         }}
                       >
-                        {value}
+                        {reminderKindLabels[value as ReminderSettings["kind"]]}
                       </T>
                     </Pressable>
                   );
@@ -370,11 +401,11 @@ export default function Settings({
                 label="提醒标题 · 可选"
                 value={title}
                 onChange={setTitle}
-                placeholder={`${kind}提醒`}
+                placeholder={t(`${reminderKindLabels[kind]}提醒`)}
                 maxLength={100}
               />
               <View style={{ flexDirection: "row", gap: 10 }}>
-                {(kind === "喂养"
+                {(kind === "feed"
                   ? [
                       {
                         value: "after-feed" as const,
@@ -495,7 +526,8 @@ export default function Settings({
                     !/^([01]\d|2[0-3]):[0-5]\d$/.test(dailyTime.trim())
                   )
                     throw new Error("时间格式应为 HH:mm");
-                  const reminderTitle = title.trim() || `${kind}提醒`;
+                  const reminderTitle =
+                    title.trim() || t(`${reminderKindLabels[kind]}提醒`);
                   const currentMinutes = Number(minutes);
                   const settings: ReminderSettings = {
                     kind,

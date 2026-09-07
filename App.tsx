@@ -10,14 +10,7 @@ import {
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import {
-  Entry,
-  State,
-  ageLabel,
-  elapsedLabel,
-  summarize,
-  validateState,
-} from "./src/domain";
+import { Entry, State, summarize, validateState } from "./src/domain";
 import {
   loadState,
   saveState,
@@ -26,6 +19,8 @@ import {
   loadRecovery,
   loadAvatarUri,
   saveAvatarUri,
+  loadLanguage,
+  saveLanguage,
 } from "./src/storage";
 import { importBackup } from "./src/backup";
 import EntryEditor, { newEntry } from "./src/EntryEditor";
@@ -45,6 +40,17 @@ import {
   row,
   heading,
 } from "./src/ui";
+import {
+  formatDate,
+  formatTime,
+  age,
+  elapsed,
+  I18nProvider,
+  type LanguagePreference,
+  resolveLocale,
+  setActiveLocale,
+  t,
+} from "./src/i18n";
 const kinds: Record<
   Entry["type"],
   { label: string; icon: string; color: string }
@@ -63,40 +69,65 @@ const feedLabels = {
   "breast-both": "亲喂 · 双侧",
 };
 const diaperLabels = { wet: "尿", dirty: "便", mixed: "尿＋便" };
-const time = (iso: string) =>
-  new Date(iso).toLocaleTimeString("zh-CN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
+const time = (iso: string) => formatTime(iso);
 const localDay = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 function detail(e: Entry, now: number) {
   if (e.type === "feed")
-    return `${feedLabels[e.feedKind!]}${e.amount !== undefined ? ` · ${e.amount} mL` : ""}${e.end ? ` · ${elapsedLabel(Date.parse(e.end) - Date.parse(e.start))}` : ""}`;
+    return [
+      t(feedLabels[e.feedKind!]),
+      e.amount !== undefined ? `${e.amount} mL` : null,
+      e.end ? elapsed(Date.parse(e.end) - Date.parse(e.start)) : null,
+    ]
+      .filter(Boolean)
+      .join(" · ");
   if (e.type === "diaper") return diaperLabels[e.diaperKind!];
   if (e.type === "sleep")
     return e.end
-      ? `${time(e.start)}–${time(e.end)} · ${elapsedLabel(Date.parse(e.end) - Date.parse(e.start))}`
-      : `正在睡 · ${elapsedLabel(now - Date.parse(e.start))}`;
+      ? `${time(e.start)}–${time(e.end)} · ${elapsed(Date.parse(e.end) - Date.parse(e.start))}`
+      : t("正在睡 · {duration}", {
+          duration: elapsed(now - Date.parse(e.start)),
+        });
   if (e.type === "growth")
     return [
       e.weight !== undefined ? `${e.weight} kg` : null,
-      e.length !== undefined ? `${e.length} cm 身长` : null,
-      e.head !== undefined ? `${e.head} cm 头围` : null,
+      e.length !== undefined ? t("身长 {value} cm", { value: e.length }) : null,
+      e.head !== undefined ? t("头围 {value} cm", { value: e.head }) : null,
     ]
       .filter(Boolean)
       .join(" · ");
   return e.title!;
 }
 export default function App() {
+  const [language, setLanguage] = useState<LanguagePreference>("system");
+  useEffect(() => {
+    void loadLanguage().then((saved) => {
+      if (saved) setLanguage(saved);
+    });
+  }, []);
+  const locale = resolveLocale(language);
   return (
     <SafeAreaProvider>
-      <BabyApp />
+      <I18nProvider locale={locale}>
+        <BabyApp
+          language={language}
+          onLanguageChange={async (next) => {
+            setActiveLocale(resolveLocale(next));
+            await saveLanguage(next);
+            setLanguage(next);
+          }}
+        />
+      </I18nProvider>
     </SafeAreaProvider>
   );
 }
-function BabyApp() {
+function BabyApp({
+  language,
+  onLanguageChange,
+}: {
+  language: LanguagePreference;
+  onLanguageChange: (language: LanguagePreference) => Promise<void>;
+}) {
   const [darkMode, setDarkMode] = useState(false);
   const c = darkMode ? dark : light;
   const [state, setState] = useState<State | null>(null),
@@ -114,6 +145,16 @@ function BabyApp() {
     lock = useRef(false);
   const [rescue, setRescue] = useState<State | null>(null);
   const [metric, setMetric] = useState<Metric>("weight");
+  async function changeLanguage(next: LanguagePreference) {
+    await onLanguageChange(next);
+    if (stateRef.current) {
+      try {
+        await rescheduleAutoFeedReminders(stateRef.current.entries);
+      } catch {
+        // The language preference should still save if notification refresh fails.
+      }
+    }
+  }
   async function init() {
     try {
       const [s, preference, savedAvatarUri] = await Promise.all([
@@ -392,7 +433,7 @@ function BabyApp() {
                     ]}
                   >
                     {tab === "today"
-                      ? `${state.profile.name}的小日子`
+                      ? t("{name}的小日子", { name: state.profile.name })
                       : pageTitles[tab]}
                   </T>
                 ) : null}
@@ -499,7 +540,7 @@ function BabyApp() {
                             marginTop: 5,
                           }}
                         >
-                          {ageLabel(state.profile.birthDate, new Date(now))}　›
+                          {age(state.profile.birthDate, new Date(now))}　›
                         </T>
                       </Pressable>
                     </View>
@@ -572,7 +613,7 @@ function BabyApp() {
                 <View style={row}>
                   <T style={heading}>照顾此刻</T>
                   <T style={{ fontSize: 12, color: c.muted }}>
-                    {new Date(now).toLocaleDateString("zh-CN", {
+                    {formatDate(now, {
                       month: "long",
                       day: "numeric",
                       weekday: "short",
@@ -611,9 +652,25 @@ function BabyApp() {
                           </T>
                           <T style={{ fontSize: 12, color: c.muted }}>
                             {type === "sleep" && active
-                              ? `已睡 ${elapsedLabel(now - Date.parse(active.start))}`
+                              ? t("已睡 {duration}", {
+                                  duration: elapsed(
+                                    now - Date.parse(active.start),
+                                  ),
+                                })
                               : last
-                                ? `上次 ${time(type === "sleep" ? last.end! : last.start)} · ${elapsedLabel(now - Date.parse(type === "sleep" ? last.end! : last.start))}前`
+                                ? t("上次 {time} · {duration}前", {
+                                    time: time(
+                                      type === "sleep" ? last.end! : last.start,
+                                    ),
+                                    duration: elapsed(
+                                      now -
+                                        Date.parse(
+                                          type === "sleep"
+                                            ? last.end!
+                                            : last.start,
+                                        ),
+                                    ),
+                                  })
                                 : "还没有记录，轻点开始"}
                           </T>
                         </View>
@@ -716,6 +773,8 @@ function BabyApp() {
                   if (recovery) setUndo(null);
                 }}
                 darkMode={darkMode}
+                language={language}
+                onLanguageChange={changeLanguage}
                 onDarkMode={(v) =>
                   void act(async () => {
                     await saveTheme(v);
@@ -753,7 +812,7 @@ function BabyApp() {
                 <Pressable
                   accessibilityRole="tab"
                   accessibilityState={{ selected: tab === key }}
-                  accessibilityLabel={label}
+                  accessibilityLabel={t(label)}
                   key={key}
                   onPress={() => {
                     setTab(key);

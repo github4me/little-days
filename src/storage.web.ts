@@ -3,6 +3,7 @@ import {
   parseReminderSettings,
   type ReminderSettings,
 } from "./reminderSettings";
+import type { LanguagePreference } from "./i18n";
 const KEY = "little-days-v1";
 export async function loadState(): Promise<State> {
   const raw = localStorage.getItem(KEY);
@@ -29,6 +30,13 @@ export async function loadTheme(): Promise<boolean | null> {
 export async function saveTheme(dark: boolean) {
   localStorage.setItem(KEY + "-dark", String(dark));
 }
+export async function loadLanguage(): Promise<LanguagePreference | null> {
+  const value = localStorage.getItem(KEY + "-language");
+  return value === "system" || value === "zh" || value === "en" ? value : null;
+}
+export async function saveLanguage(language: LanguagePreference) {
+  localStorage.setItem(KEY + "-language", language);
+}
 export async function loadReminderSettings(): Promise<ReminderSettings | null> {
   try {
     const raw = localStorage.getItem(KEY + "-reminder-settings");
@@ -46,7 +54,7 @@ export async function loadAutoFeedReminder(): Promise<ReminderSettings | null> {
   try {
     const raw = localStorage.getItem(KEY + "-auto-feed-reminder");
     const settings = raw ? parseReminderSettings(JSON.parse(raw)) : null;
-    return settings?.kind === "喂养" && settings.mode === "after-feed"
+    return settings?.kind === "feed" && settings.mode === "after-feed"
       ? settings
       : null;
   } catch {
@@ -55,7 +63,7 @@ export async function loadAutoFeedReminder(): Promise<ReminderSettings | null> {
 }
 export async function saveAutoFeedReminder(settings: ReminderSettings) {
   const checked = parseReminderSettings(settings);
-  if (checked?.kind !== "喂养" || checked.mode !== "after-feed")
+  if (checked?.kind !== "feed" || checked.mode !== "after-feed")
     throw new Error("跟随喂养设置无效");
   localStorage.setItem(KEY + "-auto-feed-reminder", JSON.stringify(checked));
 }
