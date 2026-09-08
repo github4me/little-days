@@ -145,8 +145,7 @@ function BabyApp({
     [now, setNow] = useState(Date.now()),
     [editor, setEditor] = useState<Entry | null>(null),
     [busy, setBusy] = useState(false),
-    [deleting, setDeleting] = useState<Entry | null>(null),
-    [undo, setUndo] = useState<Entry | null>(null);
+    [deleting, setDeleting] = useState<Entry | null>(null);
   const stateRef = useRef<State | null>(null),
     lock = useRef(false);
   const [rescue, setRescue] = useState<State | null>(null);
@@ -537,9 +536,7 @@ function BabyApp({
                                   (x) => x.id !== e.id,
                                 ),
                               });
-                              setUndo(e);
                               setDeleting(null);
-                              setMessage("记录已删除，可撤销");
                             })
                           }
                         />
@@ -548,22 +545,6 @@ function BabyApp({
                   </View>
                 </View>
               </Modal>
-            ) : null}
-            {undo ? (
-              <View style={row}>
-                <T style={{ fontSize: 13 }}>已删除一条记录</T>
-                <Button
-                  label="撤销删除"
-                  secondary
-                  disabled={busy}
-                  onPress={() =>
-                    void act(async () => {
-                      await upsert(undo);
-                      setUndo(null);
-                    })
-                  }
-                />
-              </View>
             ) : null}
             {tab === "today" ? (
               <>
@@ -947,7 +928,6 @@ function BabyApp({
                   onAvatarChange={updateAvatar}
                   onCommit={async (next, recovery) => {
                     await commit(next, recovery);
-                    if (recovery) setUndo(null);
                   }}
                   darkMode={darkMode}
                   language={language}

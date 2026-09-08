@@ -282,10 +282,25 @@ assert.equal(
 );
 await page.getByRole("button", { name: "删除尿布", exact: true }).click();
 await page.getByRole("button", { name: "确认删除", exact: true }).click();
-await page.getByRole("button", { name: "撤销删除", exact: true }).click();
 await page
-  .getByText("1 次更换 · 有尿 1 次 · 有便 1 次", { exact: true })
-  .waitFor();
+  .getByRole("button", { name: "删除尿布", exact: true })
+  .waitFor({ state: "detached" });
+assert.equal(
+  await page.getByRole("button", { name: "撤销删除", exact: true }).count(),
+  0,
+);
+assert.equal(
+  await page.getByText("已删除一条记录", { exact: true }).count(),
+  0,
+);
+assert.equal(
+  await page.evaluate(() =>
+    JSON.parse(localStorage.getItem("little-days-v1")).entries.some(
+      (e) => e.id === "d1",
+    ),
+  ),
+  false,
+);
 await page.getByRole("button", { name: "睡眠", exact: true }).click();
 await page.getByText("1 段睡眠 · 3小时1分", { exact: true }).waitFor();
 await page.getByRole("tab", { name: "成长", exact: true }).click();
@@ -306,7 +321,7 @@ assert.equal(
       JSON.parse(localStorage.getItem("little-days-v1")),
     )
   ).entries.length,
-  17,
+  16,
 );
 await page.getByRole("tab", { name: "我的", exact: true }).click();
 assert.equal(await page.getByLabel("宝宝名字", { exact: true }).count(), 0);
@@ -485,7 +500,6 @@ await page
 await page.getByRole("button", { name: "Edit Feed", exact: true }).waitFor();
 await assertNoUntranslatedChinese("Records");
 await page.getByRole("button", { name: "Diaper", exact: true }).click();
-await page.getByText("1 changes · 1 pee · 1 poo", { exact: true }).waitFor();
 await page.getByText("changes", { exact: true }).waitFor();
 await assertNoUntranslatedChinese("Diaper records");
 await page.setViewportSize({ width: 340, height: 740 });
@@ -565,6 +579,6 @@ assert.equal(
 );
 assert.deepEqual(errors, []);
 console.log(
-  "PASS: clean home, removed controls/milestones, daily chart summaries and intervals, unit switch, edit/delete/undo, growth, old data retained, dark mode, narrow layout.",
+  "PASS: clean home, removed controls/milestones, daily chart summaries and intervals, unit switch, confirmed deletion without undo, growth, old data retained, dark mode, narrow layout.",
 );
 await browser.close();

@@ -246,8 +246,6 @@ const english: Record<string, string> = {
   读取恢复副本: "Open recovery copy",
   确认恢复: "Confirm restore",
   确认删除: "Delete record",
-  撤销删除: "Undo delete",
-  已删除一条记录: "One record deleted",
   关闭提示: "Close message",
   "日期或时间无效，请检查输入":
     "Invalid date or time. Please check your input.",
@@ -294,7 +292,6 @@ const english: Record<string, string> = {
     "This replaces the {count} current records for “{name}”; it does not merge them. A copy of the replaced data remains available above.",
   "统计图，单位{unit}，数值见每日汇总和明细":
     "Chart in {unit}; values appear in the daily summary and details.",
-  "记录已删除，可撤销": "Record deleted — you can undo this",
   没有恢复副本: "No recovery copy available",
   语言已保存: "Language saved",
   出生日期无效: "Invalid birth date",
