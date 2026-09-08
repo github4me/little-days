@@ -3,7 +3,7 @@ import { words } from "./learning";
 export const careOptions = [
   {
     id: "temperature",
-    icon: "♨",
+    icon: "temperature",
     label: words("体温", "Temp"),
     hint: words(
       "有需要时测量，不要求每日测温。记录原始读数，不按测量部位自行加减。",
@@ -13,7 +13,7 @@ export const careOptions = [
   },
   {
     id: "bath",
-    icon: "≈",
+    icon: "bath",
     label: words("洗澡", "Bath"),
     hint: words(
       "不必每天洗澡。提前备好用品，成人全程看护；水边不操作手机。",
@@ -23,7 +23,7 @@ export const careOptions = [
   },
   {
     id: "wash",
-    icon: "☀",
+    icon: "wash",
     label: words("清洁", "Wash"),
     hint: words(
       "按需要轻柔清洁脸、颈部、手和皮肤褶皱，并轻轻擦干。",
@@ -33,7 +33,7 @@ export const careOptions = [
   },
   {
     id: "oral",
-    icon: "◇",
+    icon: "oral",
     label: words("口腔", "Teeth"),
     hint: words(
       "第一颗牙萌出后开始刷牙；牙刷和牙膏选择遵循当地儿童牙医建议。请记录实际完成的一次照护。",
@@ -43,7 +43,7 @@ export const careOptions = [
   },
   {
     id: "nails",
-    icon: "✂",
+    icon: "nails",
     label: words("指甲", "Nails"),
     hint: words(
       "按需要记录指甲护理，不是每日任务。由成人使用婴儿适用工具，宝宝挣动时暂停。",
@@ -59,6 +59,18 @@ export const temperatureMethods = [
   { id: "rectal", label: words("肛温", "Rectal") },
   { id: "other", label: words("其他", "Other") },
 ] as const;
+
+export const defaultTemperatureMethod = "armpit" as const;
+
+// Preserve the measured decimal; accept both common decimal separators and
+// full-width keyboard input. Never silently round or parse a numeric prefix.
+export function parseTemperatureInput(input: string): number {
+  const normalized = input.normalize("NFKC").trim().replace(",", ".");
+  if (!/^\d{2}(?:\.\d{1,2})?$/.test(normalized)) throw new Error("temperature");
+  const value = Number(normalized);
+  if (value < 25 || value > 45) throw new Error("temperature");
+  return value;
+}
 
 export function careTime(
   date: string,

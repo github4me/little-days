@@ -1,7 +1,32 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { initialState, validateCareRecord, validateState } from "./domain";
-import { careTime } from "./care";
+import {
+  careTime,
+  parseTemperatureInput,
+  defaultTemperatureMethod,
+} from "./care";
+
+test("temperature entry keeps decimals across keyboard formats and defaults to armpit", () => {
+  assert.equal(defaultTemperatureMethod, "armpit");
+  for (const input of ["36.8", "36,8", "３６．８", "３６，８", " 36.8 "])
+    assert.equal(parseTemperatureInput(input), 36.8);
+  for (const value of [25, 36, 36.85, 45])
+    assert.equal(parseTemperatureInput(String(value)), value);
+  for (const input of [
+    "",
+    "36.",
+    "36..8",
+    "36,8.5",
+    "36.888",
+    "36C",
+    "3e1",
+    "24.9",
+    "45.01",
+    "NaN",
+  ])
+    assert.throws(() => parseTemperatureInput(input));
+});
 
 const record = {
   id: "temp-1",

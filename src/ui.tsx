@@ -221,6 +221,7 @@ export function Field({
   onChange: (v: string) => void;
   placeholder?: string;
   keyboardType?: KeyboardTypeOptions;
+  inputMode?: "decimal";
   maxLength?: number;
   editable?: boolean;
 }) {

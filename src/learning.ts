@@ -18,6 +18,10 @@ export const ageBands = [
   })),
 ] as const;
 export const learningSources = {
+  touch: {
+    label: "NHS · Infant massage",
+    url: "https://www.cuh.nhs.uk/patient-information/infant-massage/",
+  },
   cdc4: {
     label: "CDC · 4 months",
     url: "https://www.cdc.gov/act-early/milestones/4-months.html",
@@ -84,6 +88,115 @@ export type PlayActivity = {
 // Editorial play ideas, not milestone tests. Bounds are broad browsing aids,
 // not scientifically validated prescriptions or developmental deadlines.
 export const playActivities: PlayActivity[] = [
+  {
+    id: "gentle-touch",
+    min: 0,
+    max: 12,
+    scene: "quiet",
+    minutes: "1–2",
+    title: words("轻柔抚触", "Gentle touch"),
+    focus: words("安稳陪伴", "Comfort and connection"),
+    materials: words("温暖、干净的双手", "Warm, clean hands"),
+    steps: [
+      words(
+        "宝宝清醒安稳时，在安全平面上，先轻轻触碰手或脚，观察是否愿意。",
+        "With baby awake and settled on a safe surface, gently touch a hand or foot and watch their response.",
+      ),
+      words(
+        "愿意时用手轻柔抚摸手臂或腿，配合轻声说话；随时可以结束。",
+        "If welcomed, gently stroke an arm or leg while talking softly. Finish whenever needed.",
+      ),
+    ],
+    safety: words(
+      "不按压腹部、不拉伸关节，也不作为排气治疗；哭闹、躲避或皮肤不适就停。早产、患病或有医疗需要时先问照护团队。",
+      "Do not press the tummy, stretch joints or use this as gas treatment. Stop for distress, withdrawal or skin irritation. Ask the care team first for prematurity, illness or medical needs.",
+    ),
+    source: "touch",
+  },
+  {
+    id: "rattle-listen",
+    min: 4,
+    max: 12,
+    scene: "quiet",
+    minutes: "1–2",
+    title: words("听听小摇铃", "A gentle rattle"),
+    focus: words("听、看与抓握", "Listening and grasping"),
+    materials: words(
+      "完整、适龄、易握的婴儿摇铃",
+      "An intact, age-suitable, easy-grip rattle",
+    ),
+    steps: [
+      words(
+        "把摇铃放在宝宝看得见的位置，轻摇一下，再停下来。",
+        "Show the rattle, give it a gentle shake, then pause.",
+      ),
+      words(
+        "等宝宝回应或自己伸手，不强行转头或抓握。",
+        "Wait for a response or reach; do not force their head or hands.",
+      ),
+    ],
+    safety: words(
+      "成人看护；不用散装铃铛或小零件，不贴耳摇响，惊吓或烦躁就停。",
+      "Supervise. No loose bells or small parts; keep sound away from ears. Stop if startled or upset.",
+    ),
+    source: "cdc4",
+  },
+  {
+    id: "kick-play",
+    min: 4,
+    max: 9,
+    scene: "floor",
+    minutes: "1–3",
+    title: words("小脚自由踢", "Little kicks"),
+    focus: words("自主探索", "Free movement"),
+    materials: words(
+      "地垫；可选适龄脚踏琴",
+      "A floor mat; an age-suitable kick piano is optional",
+    ),
+    steps: [
+      words(
+        "清醒时仰卧在地垫上，留出腿部活动空间。",
+        "While awake, lie baby on their back on a mat with space for their legs.",
+      ),
+      words(
+        "让宝宝自己踢动；有脚踏玩具时按说明放好，不抓着脚踩。",
+        "Let baby kick freely. Position any kick toy as directed; never move their feet for them.",
+      ),
+    ],
+    safety: words(
+      "成人陪伴，音量轻柔；无绳带或松脱零件，困倦就结束并移至安全睡眠处。",
+      "Supervise; keep sound gentle. No cords or loose parts. End when sleepy and move to a safe sleep space.",
+    ),
+    source: "cdc4",
+  },
+  {
+    id: "mirror-play",
+    min: 6,
+    max: 18,
+    scene: "quiet",
+    minutes: "1–2",
+    title: words("镜子里的笑脸", "Mirror smiles"),
+    focus: words("一起注视与回应", "Looking and responding together"),
+    materials: words(
+      "适龄、不易碎、无锐边的婴儿镜",
+      "An age-suitable, shatter-resistant baby mirror with smooth edges",
+    ),
+    steps: [
+      words(
+        "抱稳宝宝，或让宝宝清醒躺在地垫上，把婴儿镜稳稳放在看得到的位置。",
+        "Support baby securely or let them lie awake on a mat, with the baby mirror held securely in view.",
+      ),
+      words(
+        "指指镜中笑脸，叫宝宝的名字，停下来等回应。",
+        "Point to the smiling face, say baby's name, and pause for a response.",
+      ),
+    ],
+    safety: words(
+      "不用玻璃镜或手机屏幕，不强迫坐立；成人全程看护，宝宝转开视线就休息。",
+      "No glass mirrors or phone screens; do not force sitting. Supervise throughout and pause when baby turns away.",
+    ),
+    source: "cdc6",
+  },
   {
     id: "gentle-song",
     min: 0,

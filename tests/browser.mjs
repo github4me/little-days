@@ -81,7 +81,7 @@ await page
 assert.equal(await page.getByRole("button", { name: /^查看/ }).count(), 0);
 await page.getByRole("button", { name: "选择活动", exact: true }).click();
 await page.getByRole("button", { name: "0–1 个月", exact: true }).click();
-assert.equal(await page.getByRole("button", { name: /^查看/ }).count(), 6);
+assert.equal(await page.getByRole("button", { name: /^查看/ }).count(), 7);
 assert.equal(
   await page
     .getByRole("checkbox", { name: /^选择活动：/, checked: true })
@@ -620,7 +620,7 @@ await page.getByText("亲子早教", { exact: true }).waitFor();
 await page
   .getByRole("checkbox", { name: "今天做过：看看黑白卡", exact: true })
   .waitFor();
-assert.equal(await page.getByRole("button", { name: /^查看/ }).count(), 6);
+assert.equal(await page.getByRole("button", { name: /^查看/ }).count(), 7);
 assert.equal(
   await page.getByRole("button", { name: /个月$/, exact: false }).count(),
   0,
@@ -656,7 +656,7 @@ await page
   .getByRole("checkbox", { name: "选择活动：今天穿哪一件？", checked: true })
   .waitFor();
 await page.getByRole("button", { name: "活动清单", exact: true }).click();
-assert.equal(await page.getByRole("button", { name: /^查看/ }).count(), 6);
+assert.equal(await page.getByRole("button", { name: /^查看/ }).count(), 7);
 assert.equal(
   await page
     .getByRole("button", { name: "查看看看黑白卡", exact: true })
@@ -861,8 +861,69 @@ await page
   .getByRole("button", { name: "View Awake tummy time", exact: true })
   .click();
 await assertNoUntranslatedChinese("Selected activity list");
+await page
+  .getByRole("button", { name: "Choose activities", exact: true })
+  .click();
+await page.getByRole("button", { name: "5–7 months", exact: true }).click();
+for (const title of [
+  "Gentle touch",
+  "A gentle rattle",
+  "Little kicks",
+  "Mirror smiles",
+]) {
+  await page
+    .getByRole("button", { name: `View ${title}`, exact: true })
+    .click();
+  await assertNoUntranslatedChinese(title);
+  await page
+    .getByRole("button", { name: `Hide ${title}`, exact: true })
+    .click();
+}
 // Daily care is a separate history, not a daily play checkbox.
 await page.getByRole("button", { name: "Daily care", exact: true }).click();
+const playControls = [
+  "Activities",
+  "Daily care",
+  "Choose activities",
+  "Temp",
+  "Bath",
+  "Wash",
+  "Teeth",
+  "Nails",
+];
+const iconPaths = [];
+for (const name of playControls) {
+  const control = page.getByRole("button", { name, exact: true });
+  assert.equal(await control.locator("svg").count(), 1);
+  iconPaths.push(await control.locator("svg path").getAttribute("d"));
+}
+assert.equal(new Set(iconPaths).size, playControls.length);
+for (const names of [playControls.slice(0, 3), playControls.slice(3)]) {
+  const boxes = await page
+    .getByRole("button", { name: new RegExp(`^(${names.join("|")})$`) })
+    .evaluateAll((elements) =>
+      elements.map((element) => {
+        const { x, y, width, height } = element.getBoundingClientRect();
+        return { x, y, width, height };
+      }),
+    );
+  assert.equal(boxes.length, names.length);
+  assert.ok(
+    boxes.every(
+      (b) =>
+        Math.abs(b.y - boxes[0].y) < 1 &&
+        b.height >= 44 &&
+        b.x >= 0 &&
+        b.x + b.width <= page.viewportSize().width,
+    ),
+  );
+}
+await page
+  .getByRole("button", { name: "Temp", exact: true })
+  .scrollIntoViewIfNeeded();
+await page.screenshot({
+  path: path.join(process.env.TEMP ?? "docs", "little-days-care-icons-en.png"),
+});
 assert.equal(
   await page.getByRole("button", { name: "By setting", exact: true }).count(),
   0,
@@ -873,8 +934,19 @@ await page
 await page.getByText(/Check the date, time and reading/).waitFor();
 await page
   .getByRole("textbox", { name: "Temperature · °C", exact: true })
-  .fill("36.85");
-await page.getByRole("button", { name: "Armpit", exact: true }).click();
+  .pressSequentially("36.85");
+assert.equal(
+  await page
+    .getByRole("button", { name: "Armpit", exact: true })
+    .getAttribute("aria-pressed"),
+  "true",
+);
+assert.equal(
+  await page
+    .getByRole("textbox", { name: "Temperature · °C", exact: true })
+    .getAttribute("inputmode"),
+  "decimal",
+);
 await page
   .getByRole("textbox", { name: "Care notes", exact: true })
   .fill("after waking");
@@ -899,12 +971,19 @@ assert.equal(
   ),
   36.85,
 );
+assert.equal(
+  await page.evaluate(
+    () =>
+      JSON.parse(localStorage.getItem("little-days-v1")).careRecords[0].method,
+  ),
+  "armpit",
+);
 await page
   .getByRole("button", { name: "Edit care record", exact: true })
   .click();
 await page
   .getByRole("textbox", { name: "Temperature · °C", exact: true })
-  .fill("37.2");
+  .fill("37,2");
 await page
   .getByRole("button", { name: "Save care record", exact: true })
   .click();
@@ -932,7 +1011,31 @@ for (let i = 0; i < 5; i++) {
     .getByRole("button", { name: "Save care record", exact: true })
     .click();
   await page.getByText("Care record saved", { exact: true }).waitFor();
+  assert.equal(
+    await page
+      .getByRole("button", { name: "Armpit", exact: true })
+      .getAttribute("aria-pressed"),
+    "true",
+  );
 }
+// Editing an older non-armpit reading must retain its actual measurement site.
+await page
+  .getByRole("button", { name: "Edit care record", exact: true })
+  .last()
+  .click();
+assert.equal(
+  await page
+    .getByRole("button", { name: "Forehead", exact: true })
+    .getAttribute("aria-pressed"),
+  "true",
+);
+await page.getByRole("button", { name: "Cancel edit", exact: true }).click();
+assert.equal(
+  await page
+    .getByRole("button", { name: "Armpit", exact: true })
+    .getAttribute("aria-pressed"),
+  "true",
+);
 assert.equal(
   await page
     .getByRole("button", { name: "Delete care record", exact: true })
@@ -1068,8 +1171,7 @@ await page.getByRole("button", { name: "日常照护", exact: true }).click();
 await context.setOffline(true);
 await page
   .getByRole("textbox", { name: "体温 · °C", exact: true })
-  .fill("36.7");
-await page.getByRole("button", { name: "腋下", exact: true }).click();
+  .fill("３６．７");
 await page.getByRole("button", { name: "保存照护记录", exact: true }).click();
 await page.getByText("照护记录已保存", { exact: true }).waitFor();
 assert.equal(

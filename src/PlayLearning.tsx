@@ -3,6 +3,7 @@ import { Linking, Modal, Pressable, ScrollView, View } from "react-native";
 import { Button, Card, T, Theme } from "./ui";
 import { useI18n } from "./i18n";
 import DailyCare from "./DailyCare";
+import PlayIcon, { type PlayIconKind } from "./PlayIcon";
 import type { CareRecord } from "./domain";
 import {
   loadPlaySelection,
@@ -30,7 +31,7 @@ function Options({
   value,
   onChange,
 }: {
-  options: { value: string; icon: string; label: string }[];
+  options: { value: string; icon: PlayIconKind; label: string }[];
   value: string;
   onChange: (value: string) => void;
 }) {
@@ -57,9 +58,7 @@ function Options({
             borderColor: value === o.value ? c.primary : c.line,
           }}
         >
-          <T raw style={{ fontSize: 21, lineHeight: 27, color: c.primary }}>
-            {o.icon}
-          </T>
+          <PlayIcon kind={o.icon} color={c.primary} />
           <T
             raw
             style={{
@@ -428,13 +427,17 @@ export default function PlayLearning({
         options={[
           {
             value: "today",
-            icon: "☀",
+            icon: "activities",
             label: text("活动清单", "Activities"),
           },
-          { value: "care", icon: "☀", label: text("日常照护", "Daily care") },
+          {
+            value: "care",
+            icon: "care",
+            label: text("日常照护", "Daily care"),
+          },
           {
             value: "choose",
-            icon: "☑",
+            icon: "choose",
             label: text("选择活动", "Choose activities"),
           },
         ]}

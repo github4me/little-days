@@ -3,7 +3,14 @@ import { Linking, Pressable, View } from "react-native";
 import { Button, Card, Field, T, Theme } from "./ui";
 import { useI18n } from "./i18n";
 import { CareRecord, validateCareRecord, makeId } from "./domain";
-import { careOptions, careTime, temperatureMethods } from "./care";
+import {
+  careOptions,
+  careTime,
+  temperatureMethods,
+  defaultTemperatureMethod,
+  parseTemperatureInput,
+} from "./care";
+import PlayIcon from "./PlayIcon";
 import { playDayKey, type LearningText } from "./learning";
 
 export default function DailyCare({
@@ -25,7 +32,9 @@ export default function DailyCare({
   const text = (zh: string, en: string) => (locale === "en-US" ? en : zh);
   const [kind, setKind] = useState<CareRecord["kind"]>("temperature");
   const [temperature, setTemperature] = useState("");
-  const [method, setMethod] = useState<CareRecord["method"]>();
+  const [method, setMethod] = useState<CareRecord["method"]>(
+    defaultTemperatureMethod,
+  );
   const [date, setDate] = useState(playDayKey(new Date(now)));
   const [time, setTime] = useState(new Date(now).toTimeString().slice(0, 5));
   const [note, setNote] = useState("");
@@ -42,7 +51,7 @@ export default function DailyCare({
   const shown = expanded ? history : history.slice(0, 5);
   function reset() {
     setTemperature("");
-    setMethod(undefined);
+    setMethod(defaultTemperatureMethod);
     setNote("");
     setEditing(null);
     setDate(playDayKey(new Date(now)));
@@ -54,18 +63,13 @@ export default function DailyCare({
     let record: CareRecord;
     try {
       const at = careTime(date, time, now, birthDate);
-      if (
-        kind === "temperature" &&
-        (!/^\d{2}(?:[.,]\d{1,2})?$/.test(temperature.trim()) || !method)
-      )
-        throw new Error("value");
       record = validateCareRecord({
         id: editing ?? makeId(),
         kind,
         time: at,
         note,
         ...(kind === "temperature"
-          ? { temperature: Number(temperature.replace(",", ".")), method }
+          ? { temperature: parseTemperatureInput(temperature), method }
           : {}),
       });
     } catch {
@@ -149,9 +153,7 @@ export default function DailyCare({
               backgroundColor: kind === o.id ? c.soft : c.card,
             }}
           >
-            <T raw style={{ color: c.primary, fontSize: 20 }}>
-              {o.icon}
-            </T>
+            <PlayIcon kind={o.icon} color={c.primary} />
             <T raw style={{ fontSize: 11 }}>
               {copy(o.label)}
             </T>
@@ -208,11 +210,21 @@ export default function DailyCare({
               value={temperature}
               onChange={setTemperature}
               keyboardType="decimal-pad"
-              maxLength={5}
+              inputMode="decimal"
+              maxLength={8}
               placeholder="36.8"
             />
             <T raw style={{ fontSize: 12, color: c.muted }}>
-              {text("测量方式 · 必选", "Measurement method · required")}
+              {text(
+                "输入实际读数，例如 36.8；支持小数点或逗号。",
+                "Enter the reading, e.g. 36.8. A decimal point or comma is accepted.",
+              )}
+            </T>
+            <T raw style={{ fontSize: 12, color: c.muted }}>
+              {text(
+                "测量方式 · 默认腋下，请按实际部位选择",
+                "Measurement method · defaults to armpit; select the site used",
+              )}
             </T>
             <View style={{ flexDirection: "row", gap: 4 }}>
               {temperatureMethods.map((m) => (
@@ -221,6 +233,7 @@ export default function DailyCare({
                   accessibilityRole="button"
                   accessibilityLabel={copy(m.label)}
                   accessibilityState={{ selected: method === m.id }}
+                  aria-pressed={method === m.id}
                   disabled={busy}
                   onPress={() => setMethod(m.id)}
                   style={{
@@ -230,6 +243,8 @@ export default function DailyCare({
                     justifyContent: "center",
                     alignItems: "center",
                     borderRadius: 10,
+                    borderWidth: 1,
+                    borderColor: method === m.id ? c.primary : c.line,
                     backgroundColor: method === m.id ? c.soft : c.bg,
                   }}
                 >

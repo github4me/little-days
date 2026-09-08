@@ -142,6 +142,26 @@ test("play catalog has unique IDs, bilingual steps, safety notes and known HTTPS
   }
 });
 
+test("new table-inspired activities follow actual age defaults without overriding choices", () => {
+  const initial = parsePlaySelection(null);
+  for (const [id, min, max] of [
+    ["gentle-touch", 0, 12],
+    ["rattle-listen", 4, 12],
+    ["kick-play", 4, 9],
+    ["mirror-play", 6, 18],
+  ] as const) {
+    assert.ok(selectedPlayIds(min, initial).includes(id));
+    assert.ok(!selectedPlayIds(max, initial).includes(id));
+    assert.ok(!selectedPlayIds(null, initial).includes(id));
+    if (min > 0) assert.ok(!selectedPlayIds(min - 1, initial).includes(id));
+    assert.ok(
+      !selectedPlayIds(min, changePlaySelection(initial, id, false)).includes(
+        id,
+      ),
+    );
+  }
+});
+
 test("favorites preserve known IDs, deduplicate and reject corrupt data without overwriting it", () => {
   assert.deepEqual(parsePlayFavorites(null), []);
   assert.deepEqual(parsePlayFavorites('["peekaboo", "peekaboo", "unknown"]'), [
