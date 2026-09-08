@@ -280,7 +280,9 @@ function BabyApp({
                   <T>
                     {t("用「{name}」的 {count} 条记录替换当前数据？", {
                       name: rescue.profile.name,
-                      count: rescue.entries.length,
+                      count:
+                        rescue.entries.length +
+                        (rescue.careRecords?.length ?? 0),
                     })}
                   </T>
                   <Button
@@ -924,7 +926,32 @@ function BabyApp({
               </>
             ) : null}
             {tab === "play" ? (
-              <PlayLearning birthDate={state.profile.birthDate} now={now} />
+              <PlayLearning
+                birthDate={state.profile.birthDate}
+                now={now}
+                careRecords={state.careRecords ?? []}
+                onSaveCare={async (record) => {
+                  const current = stateRef.current!;
+                  await commit({
+                    ...current,
+                    careRecords: [
+                      ...(current.careRecords ?? []).filter(
+                        (r) => r.id !== record.id,
+                      ),
+                      record,
+                    ],
+                  });
+                }}
+                onDeleteCare={async (id) => {
+                  const current = stateRef.current!;
+                  await commit({
+                    ...current,
+                    careRecords: (current.careRecords ?? []).filter(
+                      (r) => r.id !== id,
+                    ),
+                  });
+                }}
+              />
             ) : null}
             {tab === "settings" ? (
               settingsPage === "privacy" ? (

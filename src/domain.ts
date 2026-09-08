@@ -1,4 +1,12 @@
 export type EntryType = "feed" | "diaper" | "sleep" | "growth" | "milestone";
+export type CareRecord = {
+  id: string;
+  kind: "temperature" | "bath" | "wash" | "oral" | "nails";
+  time: string;
+  note: string;
+  temperature?: number;
+  method?: "armpit" | "ear" | "forehead" | "rectal" | "other";
+};
 export type Entry = {
   id: string;
   type: EntryType;
@@ -23,6 +31,7 @@ export type State = {
     sex: "male" | "female" | "unspecified";
   };
   entries: Entry[];
+  careRecords?: CareRecord[];
 };
 export const initialState: State = {
   schemaVersion: 1,
@@ -164,13 +173,42 @@ export function validateEntry(input: unknown): Entry {
     return fail("记录包含不支持的字段");
   return out;
 }
+export function validateCareRecord(input: unknown): CareRecord {
+  const r = object(input);
+  if (
+    !["temperature", "bath", "wash", "oral", "nails"].includes(r.kind as string)
+  )
+    return fail("照护类型无效");
+  const out: CareRecord = {
+    id: string(r.id, "记录编号", 128),
+    kind: r.kind as CareRecord["kind"],
+    time: instant(r.time),
+    note: string(r.note, "备注", 10000, true),
+  };
+  const allowed = ["id", "kind", "time", "note"];
+  if (out.kind === "temperature") {
+    allowed.push("temperature", "method");
+    out.temperature = number(r.temperature, "体温", 25, 45);
+    if (
+      !["armpit", "ear", "forehead", "rectal", "other"].includes(
+        r.method as string,
+      )
+    )
+      return fail("测量方式无效");
+    out.method = r.method as CareRecord["method"];
+  }
+  if (Object.keys(r).some((key) => !allowed.includes(key)))
+    return fail("照护记录包含不支持的字段");
+  return out;
+}
 export function validateState(input: unknown): State {
   const s = object(input),
     p = object(s.profile);
   if (s.schemaVersion !== 1) return fail("不支持此备份版本");
   if (
     Object.keys(s).some(
-      (k) => !["schemaVersion", "profile", "entries"].includes(k),
+      (k) =>
+        !["schemaVersion", "profile", "entries", "careRecords"].includes(k),
     ) ||
     Object.keys(p).some((k) => !["name", "birthDate", "sex"].includes(k))
   )
@@ -186,6 +224,14 @@ export function validateState(input: unknown): State {
     return fail("备份包含重复记录编号");
   if (entries.filter((e) => e.type === "sleep" && !e.end).length > 1)
     return fail("只能有一个进行中的睡眠");
+  let careRecords: CareRecord[] | undefined;
+  if (s.careRecords !== undefined) {
+    if (!Array.isArray(s.careRecords) || s.careRecords.length > 100000)
+      return fail("照护记录列表无效或过大");
+    careRecords = s.careRecords.map(validateCareRecord);
+    if (new Set(careRecords.map((r) => r.id)).size !== careRecords.length)
+      return fail("照护记录编号重复");
+  }
   return {
     schemaVersion: 1,
     profile: {
@@ -194,6 +240,7 @@ export function validateState(input: unknown): State {
       sex: p.sex as State["profile"]["sex"],
     },
     entries,
+    ...(careRecords === undefined ? {} : { careRecords }),
   };
 }
 export function summarize(entries: Entry[], from: Date, to: Date) {

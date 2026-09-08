@@ -45,7 +45,15 @@ test("check-ins use validated local calendar dates including midnight and DST da
 });
 
 test("every supported age has two distinct safe-filtered daily ideas stable within a local day", () => {
-  for (let months = 0; months < 24; months++) {
+  for (let months = 0; months < 25; months++) {
+    assert.ok(
+      activitiesForMonths(months).length >= 6,
+      `month ${months} needs at least six choices`,
+    );
+    assert.equal(
+      ageBands.filter((b) => months >= b.min && months < b.max).length,
+      1,
+    );
     const ideas = dailyActivities(months, new Date(2026, 8, 8, 0));
     assert.equal(ideas.length, 2);
     assert.equal(new Set(ideas.map((a) => a.id)).size, 2);
@@ -55,7 +63,7 @@ test("every supported age has two distinct safe-filtered daily ideas stable with
       dailyActivities(months, new Date(2026, 8, 8, 23, 59)),
     );
   }
-  for (const invalid of [-1, 24, 36, NaN, 1.5])
+  for (const invalid of [-1, 25, 36, NaN, 1.5])
     assert.deepEqual(activitiesForMonths(invalid), []);
   assert.deepEqual(dailyActivities(2, new Date(NaN)), []);
   assert.ok(ageBands.every((b) => activitiesForMonths(b.min).length >= 2));
@@ -67,7 +75,7 @@ test("play catalog has unique IDs, bilingual steps, safety notes and known HTTPS
     playActivities.length,
   );
   for (const a of playActivities) {
-    assert.ok(a.min >= 0 && a.max <= 24 && a.min < a.max);
+    assert.ok(a.min >= 0 && a.max <= 25 && a.min < a.max);
     assert.equal(a.steps.length, 2);
     for (const value of [a.title, a.focus, a.materials, a.safety, ...a.steps]) {
       assert.ok(value.zh.trim());

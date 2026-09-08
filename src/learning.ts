@@ -8,14 +8,28 @@ export const scenes = [
 ] as const;
 export type PlayScene = (typeof scenes)[number]["id"];
 export const ageBands = [
-  { min: 0, max: 3, label: "0–2" },
-  { min: 3, max: 6, label: "3–5" },
-  { min: 6, max: 9, label: "6–8" },
-  { min: 9, max: 12, label: "9–11" },
-  { min: 12, max: 18, label: "12–17" },
-  { min: 18, max: 24, label: "18–23" },
+  { min: 0, max: 1, label: "0–1" },
+  { min: 1, max: 2, label: "1–2" },
+  { min: 2, max: 3, label: "2–3" },
+  ...Array.from({ length: 11 }, (_, i) => ({
+    min: 3 + i * 2,
+    max: 5 + i * 2,
+    label: `${3 + i * 2}–${5 + i * 2}`,
+  })),
 ] as const;
 export const learningSources = {
+  cdc4: {
+    label: "CDC · 4 months",
+    url: "https://www.cdc.gov/act-early/milestones/4-months.html",
+  },
+  cdc6: {
+    label: "CDC · 6 months",
+    url: "https://www.cdc.gov/act-early/milestones/6-months.html",
+  },
+  cdc15: {
+    label: "CDC · 15 months",
+    url: "https://www.cdc.gov/act-early/milestones/15-months.html",
+  },
   vision: {
     label: "AAP · Newborn vision",
     url: "https://www.healthychildren.org/English/ages-stages/baby/Pages/Developmental-Milestones-1-Month.aspx",
@@ -70,6 +84,299 @@ export type PlayActivity = {
 // Editorial play ideas, not milestone tests. Bounds are broad browsing aids,
 // not scientifically validated prescriptions or developmental deadlines.
 export const playActivities: PlayActivity[] = [
+  {
+    id: "gentle-song",
+    min: 0,
+    max: 25,
+    scene: "quiet",
+    minutes: "1–2",
+    title: words("轻声唱一小段", "A gentle song"),
+    focus: words("熟悉声音与陪伴", "A familiar voice"),
+    materials: words("你的声音，不用播放器", "Your voice, no player needed"),
+    steps: [
+      words(
+        "清醒安稳时，唱一小段熟悉的歌。",
+        "Sing a short familiar song while your child is awake and settled.",
+      ),
+      words(
+        "留些停顿，跟随宝宝的反应，不需要唱完。",
+        "Pause and follow their response; no need to finish the song.",
+      ),
+    ],
+    safety: words(
+      "声音轻柔、不贴耳唱；困倦或烦躁就停。",
+      "Keep your voice gentle and away from the ears. Stop for tiredness or fussing.",
+    ),
+    source: "cdc2",
+  },
+  {
+    id: "reach-toy",
+    min: 4,
+    max: 12,
+    scene: "floor",
+    minutes: "1–3",
+    title: words("伸手碰一碰", "Reach for a toy"),
+    focus: words("自主伸手", "Reaching"),
+    materials: words(
+      "完整、易握的适龄玩具",
+      "An intact, easy-grip, age-suitable toy",
+    ),
+    steps: [
+      words(
+        "宝宝清醒躺在地垫上时，把玩具拿在容易够到的位置。",
+        "With baby awake on a floor mat, hold a toy within easy reach.",
+      ),
+      words(
+        "等宝宝自己伸手，左右都留机会，不拉着手完成。",
+        "Wait for their reach. Offer both sides without moving their hands for them.",
+      ),
+    ],
+    safety: words(
+      "玩具不能有小零件、长绳或锐边；成人全程陪伴。",
+      "Avoid loose parts, long cords and sharp edges. Supervise throughout.",
+    ),
+    source: "cdc4",
+  },
+  {
+    id: "texture-touch",
+    min: 4,
+    max: 12,
+    scene: "quiet",
+    minutes: "1–2",
+    title: words("摸摸不同的布", "Feel two textures"),
+    focus: words("触觉探索", "Exploring touch"),
+    materials: words(
+      "两块干净、完整、不掉毛的布",
+      "Two clean, intact, non-shedding fabrics",
+    ),
+    steps: [
+      words(
+        "成人拿稳布料，让宝宝用手碰一碰。",
+        "Hold the fabrics securely for baby to touch.",
+      ),
+      words(
+        "简单说说感觉，例如“柔软的”，不要求分辨。",
+        "Name a feeling, such as soft, without asking them to identify it.",
+      ),
+    ],
+    safety: words(
+      "不盖脸、不放入口中，不用散线或小布片。",
+      "Keep fabrics away from the face and mouth; no loose threads or tiny scraps.",
+    ),
+    source: "unicef",
+  },
+  {
+    id: "floor-reach",
+    min: 6,
+    max: 10,
+    scene: "floor",
+    minutes: "1–3",
+    title: words("转身找玩具", "Turn toward a toy"),
+    focus: words("自由活动", "Free movement"),
+    materials: words("安全地垫和适龄玩具", "A safe mat and age-suitable toy"),
+    steps: [
+      words(
+        "宝宝清醒时，在地垫上把玩具放在身旁稍远处。",
+        "While baby is awake on a floor mat, place a toy a little to one side.",
+      ),
+      words(
+        "让宝宝尝试伸手或转身，够不到就移近些。",
+        "Let them try reaching or turning; move it closer if needed.",
+      ),
+    ],
+    safety: words(
+      "不推拉身体强迫翻身；离开床、台阶和家具边缘，全程看护。",
+      "Never force a roll. Stay on the floor, away from steps and furniture edges, and supervise.",
+    ),
+    source: "cdc6",
+  },
+  {
+    id: "copy-actions",
+    min: 9,
+    max: 18,
+    scene: "quiet",
+    minutes: "1–2",
+    title: words("你做，我学", "You lead, I copy"),
+    focus: words("来回互动", "Taking turns"),
+    materials: words("面对面的空间", "Space to face each other"),
+    steps: [
+      words(
+        "观察宝宝的安全动作，例如张手或拍手，跟着模仿。",
+        "Copy a safe movement, such as opening hands or clapping.",
+      ),
+      words(
+        "停下来看看宝宝想做什么，让宝宝带领。",
+        "Pause to see what they do next and let them lead.",
+      ),
+    ],
+    safety: words(
+      "不模仿拍头、摔倒等危险动作，不要求宝宝跟做。",
+      "Do not copy head-hitting or other unsafe actions. Do not demand imitation.",
+    ),
+    source: "unicef",
+  },
+  {
+    id: "find-toy",
+    min: 12,
+    max: 25,
+    scene: "floor",
+    minutes: "1–3",
+    title: words("玩具在哪里", "Where is the toy?"),
+    focus: words("一起寻找", "Finding together"),
+    materials: words(
+      "大块适龄玩具和一块完整布",
+      "A large age-suitable toy and an intact cloth",
+    ),
+    steps: [
+      words(
+        "当着宝宝的面，用布盖住玩具的一部分。",
+        "Let your child watch as you partly cover a toy.",
+      ),
+      words(
+        "邀请一起找，必要时揭开一点，不考记忆。",
+        "Look together and uncover more if needed; this is not a memory test.",
+      ),
+    ],
+    safety: words(
+      "只盖玩具，不盖宝宝；成人看护，结束后收走布料。",
+      "Cover only the toy, never your child. Supervise and put the cloth away afterward.",
+    ),
+    source: "unicef",
+  },
+  {
+    id: "big-blocks",
+    min: 12,
+    max: 25,
+    scene: "floor",
+    minutes: "2–3",
+    title: words("叠一叠大积木", "Stack large blocks"),
+    focus: words("动手尝试", "Trying things out"),
+    materials: words(
+      "无松脱件的大块适龄积木",
+      "Large age-suitable blocks without loose parts",
+    ),
+    steps: [
+      words(
+        "在地垫上示范把一块放到另一块上。",
+        "On the floor, show one block going on another.",
+      ),
+      words(
+        "让宝宝尝试，倒了也可以一起重新摆。",
+        "Let your child try and rebuild together if it falls.",
+      ),
+    ],
+    safety: words(
+      "不用小积木或磁力零件，不追求叠高。",
+      "No small blocks or magnetic parts; keep stacks low.",
+    ),
+    source: "cdc12",
+  },
+  {
+    id: "sock-basket",
+    min: 15,
+    max: 25,
+    scene: "care",
+    minutes: "1–3",
+    title: words("袜子放进篮子", "Socks in the basket"),
+    focus: words("参与家务", "Helping together"),
+    materials: words(
+      "干净袜子和稳固空篮子",
+      "Clean socks and a stable empty basket",
+    ),
+    steps: [
+      words(
+        "拿一只袜子，示范放进地上的篮子。",
+        "Show a sock going into a basket on the floor.",
+      ),
+      words(
+        "邀请宝宝帮忙，想停就停。",
+        "Invite your child to help and stop when they wish.",
+      ),
+    ],
+    safety: words(
+      "篮子无锐边，远离洗衣机、清洁剂与塑料袋。",
+      "Use smooth edges and stay away from appliances, detergents and plastic bags.",
+    ),
+    source: "cdc15",
+  },
+  {
+    id: "action-song",
+    min: 15,
+    max: 25,
+    scene: "quiet",
+    minutes: "1–3",
+    title: words("儿歌配个动作", "Sing with gestures"),
+    focus: words("动作与语言", "Movement and words"),
+    materials: words("一首熟悉的短儿歌", "A familiar short song"),
+    steps: [
+      words(
+        "边唱边做一个简单动作，例如张开手。",
+        "Sing while making one simple gesture, such as opening your hands.",
+      ),
+      words(
+        "留时间让宝宝参与，只听也可以。",
+        "Allow time to join in; listening is fine too.",
+      ),
+    ],
+    safety: words(
+      "坐稳或站稳，不拉手臂，不需要跳跃。",
+      "Sit or stand securely; do not pull arms or require jumping.",
+    ),
+    source: "cdc15",
+  },
+  {
+    id: "roll-ball",
+    min: 18,
+    max: 25,
+    scene: "floor",
+    minutes: "2–3",
+    title: words("把球滚给你", "Roll a ball together"),
+    focus: words("轮流玩耍", "Taking turns"),
+    materials: words(
+      "不能吞咽的柔软大球",
+      "A large soft ball that cannot be swallowed",
+    ),
+    steps: [
+      words(
+        "在空旷地面坐好，把球轻轻滚向宝宝。",
+        "Sit on a clear floor and gently roll the ball to your child.",
+      ),
+      words(
+        "等宝宝用自己的方式回应。",
+        "Wait for them to respond in their own way.",
+      ),
+    ],
+    safety: words(
+      "不用气球、小球或破损球；远离楼梯，全程陪伴。",
+      "No balloons, small or damaged balls. Stay away from stairs and supervise.",
+    ),
+    source: "cdc18",
+  },
+  {
+    id: "name-body",
+    min: 18,
+    max: 25,
+    scene: "care",
+    minutes: "1–2",
+    title: words("我的鼻子在哪里", "Here is my nose"),
+    focus: words("认识身体词语", "Body words"),
+    materials: words("你的示范", "Your example"),
+    steps: [
+      words(
+        "穿衣时指指自己的鼻子或脚，说出名称。",
+        "While dressing, point to your own nose or foot and name it.",
+      ),
+      words(
+        "让宝宝自愿指一指，不要求答对。",
+        "Invite a point if they want to; there is no right-answer test.",
+      ),
+    ],
+    safety: words(
+      "不戳眼睛，不拉扯宝宝身体。",
+      "Do not poke eyes or pull your child's body.",
+    ),
+    source: "cdc18",
+  },
   {
     id: "contrast-card",
     min: 0,
@@ -204,7 +511,7 @@ export const playActivities: PlayActivity[] = [
   {
     id: "picture-chat",
     min: 3,
-    max: 24,
+    max: 25,
     scene: "quiet",
     minutes: "2–3",
     title: words("一页也算共读", "One page is enough"),
@@ -229,7 +536,7 @@ export const playActivities: PlayActivity[] = [
   {
     id: "outside-sounds",
     min: 6,
-    max: 24,
+    max: 25,
     scene: "outside",
     minutes: "1–3",
     title: words("听听外面的声音", "Listen outside"),
@@ -279,7 +586,7 @@ export const playActivities: PlayActivity[] = [
   {
     id: "in-and-out",
     min: 9,
-    max: 24,
+    max: 25,
     scene: "floor",
     minutes: "2–3",
     title: words("放进去，拿出来", "In and out"),
@@ -307,7 +614,7 @@ export const playActivities: PlayActivity[] = [
   {
     id: "after-bath",
     min: 12,
-    max: 24,
+    max: 25,
     scene: "care",
     minutes: "1–2",
     title: words("洗完澡的小歌", "An after-bath song"),
@@ -332,7 +639,7 @@ export const playActivities: PlayActivity[] = [
   {
     id: "point-and-name",
     min: 12,
-    max: 24,
+    max: 25,
     scene: "outside",
     minutes: "1–3",
     title: words("你指哪里，我说哪里", "You point, I name"),
@@ -357,7 +664,7 @@ export const playActivities: PlayActivity[] = [
   {
     id: "choose-shirt",
     min: 18,
-    max: 24,
+    max: 25,
     scene: "care",
     minutes: "1–2",
     title: words("今天穿哪一件？", "Which shirt today?"),
@@ -382,7 +689,7 @@ export const playActivities: PlayActivity[] = [
   {
     id: "care-for-toy",
     min: 18,
-    max: 24,
+    max: 25,
     scene: "floor",
     minutes: "2–3",
     title: words("照顾小玩偶", "Care for a toy"),
@@ -433,7 +740,7 @@ export function completedMonths(birthDate: string, now: Date): number | null {
   );
 }
 export function activitiesForMonths(months: number): PlayActivity[] {
-  return Number.isInteger(months) && months >= 0 && months < 24
+  return Number.isInteger(months) && months >= 0 && months < 25
     ? playActivities.filter((a) => months >= a.min && months < a.max)
     : [];
 }

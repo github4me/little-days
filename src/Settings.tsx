@@ -774,13 +774,18 @@ export default function Settings({
             <T>
               {t("{name} · {count} 条记录", {
                 name: pending.profile.name,
-                count: pending.entries.length,
+                count:
+                  pending.entries.length + (pending.careRecords?.length ?? 0),
               })}
             </T>
             <T style={{ fontSize: 13 }}>
               {t(
                 "这会替换当前「{name}」的 {count} 条记录，不会合并。替换前的数据会保留一份，可从上方入口恢复。",
-                { name: state.profile.name, count: state.entries.length },
+                {
+                  name: state.profile.name,
+                  count:
+                    state.entries.length + (state.careRecords?.length ?? 0),
+                },
               )}
             </T>
             <Button

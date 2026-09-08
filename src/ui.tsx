@@ -222,6 +222,7 @@ export function Field({
   placeholder?: string;
   keyboardType?: KeyboardTypeOptions;
   maxLength?: number;
+  editable?: boolean;
 }) {
   const c = useContext(Theme);
   const { t } = useI18n();

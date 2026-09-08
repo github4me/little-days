@@ -76,8 +76,8 @@ await page
   .getByText("还没有可用的出生日期，请先选月龄浏览。", { exact: true })
   .waitFor();
 assert.equal(await page.getByRole("button", { name: /^查看/ }).count(), 0);
-await page.getByRole("button", { name: "0–2 个月", exact: true }).click();
-assert.equal(await page.getByRole("button", { name: /^查看/ }).count(), 5);
+await page.getByRole("button", { name: "0–1 个月", exact: true }).click();
+assert.equal(await page.getByRole("button", { name: /^查看/ }).count(), 6);
 await page.getByRole("tab", { name: "今天", exact: true }).click();
 assert.equal(await page.getByText("最近记录", { exact: true }).count(), 0);
 await page.evaluate(() => {
@@ -587,9 +587,8 @@ assert.equal(
 );
 await page.getByRole("tab", { name: "早教", exact: true }).click();
 await page.getByText("亲子早教", { exact: true }).waitFor();
-await page.getByRole("button", { name: "18–23 个月", exact: true }).click();
-await page.getByRole("button", { name: "生活场景", exact: true }).click();
-await page.getByRole("button", { name: "日常照护", exact: true }).click();
+await page.getByRole("button", { name: "19–21 个月", exact: true }).click();
+
 await page
   .getByRole("button", { name: "查看今天穿哪一件？", exact: true })
   .click();
@@ -611,28 +610,17 @@ assert.deepEqual(
 await page.getByRole("tab", { name: "我的", exact: true }).click();
 await page.getByRole("button", { name: "English", exact: true }).click();
 await page.getByRole("tab", { name: "Play", exact: true }).click();
-await page.getByRole("button", { name: "18–23 months", exact: true }).click();
-await page.getByRole("button", { name: "By setting", exact: true }).click();
-for (const setting of ["Quiet", "Care", "Floor", "Outside"]) {
-  await page.getByRole("button", { name: setting, exact: true }).click();
-  const detailButtons = page.getByRole("button", { name: /^View / });
-  const count = await detailButtons.count();
-  for (let i = 0; i < count; i++) {
-    await page
-      .getByRole("button", { name: /^(View|Hide) / })
-      .nth(i)
-      .click();
-    await assertNoUntranslatedChinese(`Play ${setting}`);
-  }
+await page.getByRole("button", { name: "19–21 months", exact: true }).click();
+const detailButtons = page.getByRole("button", { name: /^View / });
+const playCount = await detailButtons.count();
+assert.ok(playCount >= 6);
+for (let i = 0; i < playCount; i++) {
+  await page
+    .getByRole("button", { name: /^(View|Hide) / })
+    .nth(i)
+    .click();
+  await assertNoUntranslatedChinese("Expanded play catalog");
 }
-const settingBoxes = await Promise.all(
-  ["Quiet", "Care", "Floor", "Outside"].map((name) =>
-    page.getByRole("button", { name, exact: true }).boundingBox(),
-  ),
-);
-assert.ok(
-  settingBoxes.every((box) => box && Math.abs(box.y - settingBoxes[0].y) < 1),
-);
 assert.equal(
   await page.evaluate(
     () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -650,19 +638,15 @@ await page
   .getByRole("button", { name: "取消收藏今天穿哪一件？", exact: true })
   .waitFor();
 await page
-  .getByText("参考月龄 18–23 个月，不是当前月龄推荐。", { exact: true })
+  .getByText("参考月龄：满 18 月至未满 25 月，不是当前月龄推荐。", {
+    exact: true,
+  })
   .waitFor();
 await page
   .getByRole("button", { name: "取消收藏今天穿哪一件？", exact: true })
   .click();
 await page
   .getByText("还没有收藏，遇到喜欢的点子就点星星。", { exact: true })
-  .waitFor();
-await page.getByRole("button", { name: "生活场景", exact: true }).click();
-await page.getByRole("button", { name: "0–2 个月", exact: true }).click();
-await page.getByRole("button", { name: "出门散步", exact: true }).click();
-await page
-  .getByText("这个月龄暂没有此场景的点子，换个场景看看。", { exact: true })
   .waitFor();
 await page.evaluate(() => {
   localStorage.setItem("little-days-v1-dark", "false");
@@ -712,7 +696,7 @@ await page.getByRole("button", { name: /^取消收藏/ }).waitFor();
 await context.setOffline(false);
 // Daily check-ins save immediately, work offline and remain separate from favorites.
 await page.getByRole("button", { name: "活动清单", exact: true }).click();
-await page.getByRole("button", { name: "0–2 个月", exact: true }).click();
+await page.getByRole("button", { name: "0–1 个月", exact: true }).click();
 const contrastCheck = () =>
   page.getByRole("checkbox", { name: "今天做过：看看黑白卡", exact: true });
 await contrastCheck().waitFor();
@@ -735,7 +719,7 @@ assert.deepEqual(
 );
 await page.reload();
 await page.getByRole("tab", { name: "早教", exact: true }).click();
-await page.getByRole("button", { name: "0–2 个月", exact: true }).click();
+await page.getByRole("button", { name: "0–1 个月", exact: true }).click();
 await page
   .getByRole("checkbox", { name: "今天做过：看看黑白卡", checked: true })
   .waitFor();
@@ -777,7 +761,7 @@ assert.equal(
 );
 await page.evaluate((key) => localStorage.removeItem(key), checkinKey);
 await page.getByRole("button", { name: "重新读取打卡", exact: true }).click();
-await page.getByRole("button", { name: "0–2 个月", exact: true }).click();
+await page.getByRole("button", { name: "0–1 个月", exact: true }).click();
 await contrastCheck().click();
 await page
   .getByRole("checkbox", { name: "今天做过：看看黑白卡", checked: true })
@@ -800,13 +784,238 @@ assert.deepEqual(
 await page.getByRole("tab", { name: "我的", exact: true }).click();
 await page.getByRole("button", { name: "English", exact: true }).click();
 await page.getByRole("tab", { name: "Play", exact: true }).click();
-await page.getByRole("button", { name: "0–2 months", exact: true }).click();
+await page.getByRole("button", { name: "0–1 months", exact: true }).click();
 await page
   .getByRole("button", { name: "View Awake tummy time", exact: true })
   .click();
 await assertNoUntranslatedChinese("Early play new activities and check-ins");
 await page.screenshot({
   path: path.join(process.env.TEMP ?? "docs", "little-days-checkins.png"),
+});
+assert.deepEqual(errors, []);
+// Daily care is a separate history, not a daily play checkbox.
+await page.getByRole("button", { name: "Daily care", exact: true }).click();
+assert.equal(
+  await page.getByRole("button", { name: "By setting", exact: true }).count(),
+  0,
+);
+await page
+  .getByRole("button", { name: "Save care record", exact: true })
+  .click();
+await page.getByText(/Check the date, time and reading/).waitFor();
+await page
+  .getByRole("textbox", { name: "Temperature · °C", exact: true })
+  .fill("36.85");
+await page.getByRole("button", { name: "Armpit", exact: true }).click();
+await page
+  .getByRole("textbox", { name: "Care notes", exact: true })
+  .fill("after waking");
+// Form changes must not write before Save.
+assert.equal(
+  await page.evaluate(
+    () =>
+      JSON.parse(localStorage.getItem("little-days-v1")).careRecords?.length ??
+      0,
+  ),
+  0,
+);
+await page
+  .getByRole("button", { name: "Save care record", exact: true })
+  .click();
+await page.getByText("Care record saved", { exact: true }).waitFor();
+assert.equal(
+  await page.evaluate(
+    () =>
+      JSON.parse(localStorage.getItem("little-days-v1")).careRecords[0]
+        .temperature,
+  ),
+  36.85,
+);
+await page
+  .getByRole("button", { name: "Edit care record", exact: true })
+  .click();
+await page
+  .getByRole("textbox", { name: "Temperature · °C", exact: true })
+  .fill("37.2");
+await page
+  .getByRole("button", { name: "Save care record", exact: true })
+  .click();
+await page.getByText("Care record saved", { exact: true }).waitFor();
+assert.equal(
+  await page.evaluate(
+    () => JSON.parse(localStorage.getItem("little-days-v1")).careRecords.length,
+  ),
+  1,
+);
+assert.equal(
+  await page.evaluate(
+    () =>
+      JSON.parse(localStorage.getItem("little-days-v1")).careRecords[0]
+        .temperature,
+  ),
+  37.2,
+);
+for (let i = 0; i < 5; i++) {
+  await page
+    .getByRole("textbox", { name: "Temperature · °C", exact: true })
+    .fill(String(36 + i / 10));
+  await page.getByRole("button", { name: "Forehead", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Save care record", exact: true })
+    .click();
+  await page.getByText("Care record saved", { exact: true }).waitFor();
+}
+assert.equal(
+  await page
+    .getByRole("button", { name: "Delete care record", exact: true })
+    .count(),
+  5,
+);
+await page
+  .getByRole("button", { name: "Show 1 older care records", exact: true })
+  .click();
+assert.equal(
+  await page
+    .getByRole("button", { name: "Delete care record", exact: true })
+    .count(),
+  6,
+);
+await page
+  .getByRole("button", { name: "Delete care record", exact: true })
+  .last()
+  .click();
+assert.equal(
+  await page.evaluate(
+    () => JSON.parse(localStorage.getItem("little-days-v1")).careRecords.length,
+  ),
+  6,
+);
+await page
+  .getByRole("button", { name: "Cancel deletion", exact: true })
+  .click();
+await page
+  .getByRole("button", { name: "Delete care record", exact: true })
+  .last()
+  .click();
+await page
+  .getByRole("button", { name: "Confirm care deletion", exact: true })
+  .click();
+await page.getByText("Care record deleted", { exact: true }).waitFor();
+assert.equal(
+  await page.evaluate(
+    () => JSON.parse(localStorage.getItem("little-days-v1")).careRecords.length,
+  ),
+  5,
+);
+await page.getByRole("button", { name: "Bath", exact: true }).click();
+await page
+  .getByRole("button", { name: "Save care record", exact: true })
+  .click();
+await page.getByText("Care record saved", { exact: true }).waitFor();
+await assertNoUntranslatedChinese("Bath care");
+for (const kind of ["Wash", "Teeth", "Nails"]) {
+  await page.getByRole("button", { name: kind, exact: true }).click();
+  await assertNoUntranslatedChinese(`Daily care ${kind}`);
+}
+await page.getByRole("button", { name: "Temp", exact: true }).click();
+await page.evaluate(() => {
+  window.careSetItem = Storage.prototype.setItem;
+  Storage.prototype.setItem = function (key, value) {
+    if (key === "little-days-v1")
+      throw new Error("simulated care save failure");
+    return window.careSetItem.call(this, key, value);
+  };
+});
+await page
+  .getByRole("textbox", { name: "Temperature · °C", exact: true })
+  .fill("36.9");
+await page.getByRole("button", { name: "Armpit", exact: true }).click();
+await page
+  .getByRole("button", { name: "Save care record", exact: true })
+  .click();
+await page
+  .getByText("Care record was not saved. Please try again.", { exact: true })
+  .waitFor();
+assert.equal(
+  await page.evaluate(
+    () => JSON.parse(localStorage.getItem("little-days-v1")).careRecords.length,
+  ),
+  6,
+);
+await page.evaluate(() => {
+  Storage.prototype.setItem = window.careSetItem;
+  delete window.careSetItem;
+});
+await page.reload();
+await page.getByRole("tab", { name: "早教", exact: true }).click();
+await page.getByRole("button", { name: "日常照护", exact: true }).click();
+assert.equal(
+  await page.getByRole("button", { name: "删除照护记录", exact: true }).count(),
+  5,
+);
+assert.equal(
+  await page.evaluate(
+    () => document.documentElement.scrollWidth <= window.innerWidth,
+  ),
+  true,
+);
+await page.screenshot({
+  path: path.join(process.env.TEMP ?? "docs", "little-days-daily-care.png"),
+});
+await page.getByRole("tab", { name: "我的", exact: true }).click();
+const careDownloadPromise = page.waitForEvent("download");
+await page.getByRole("button", { name: "导出备份文件", exact: true }).click();
+const careDownload = await careDownloadPromise;
+const careBackupBytes = await fs.readFile(await careDownload.path());
+const careBackup = JSON.parse(careBackupBytes.toString());
+assert.equal(careBackup.careRecords.length, 6);
+const careChooserPromise = page.waitForEvent("filechooser");
+await page.getByRole("button", { name: "选择备份文件", exact: true }).click();
+await (
+  await careChooserPromise
+).setFiles({
+  name: "care-backup.json",
+  mimeType: "application/json",
+  buffer: careBackupBytes,
+});
+await page
+  .getByRole("button", { name: "确认替换当前数据", exact: true })
+  .click();
+await page.getByRole("tab", { name: "早教", exact: true }).click();
+await page.getByRole("button", { name: "日常照护", exact: true }).click();
+assert.equal(
+  await page.getByRole("button", { name: "删除照护记录", exact: true }).count(),
+  5,
+);
+assert.deepEqual(
+  await page.evaluate(
+    () => JSON.parse(localStorage.getItem("little-days-v1")).careRecords,
+  ),
+  careBackup.careRecords,
+);
+await page.evaluate(() => localStorage.setItem("little-days-v1-dark", "true"));
+await page.reload();
+await page.getByRole("tab", { name: "早教", exact: true }).click();
+await page.getByRole("button", { name: "日常照护", exact: true }).click();
+await context.setOffline(true);
+await page
+  .getByRole("textbox", { name: "体温 · °C", exact: true })
+  .fill("36.7");
+await page.getByRole("button", { name: "腋下", exact: true }).click();
+await page.getByRole("button", { name: "保存照护记录", exact: true }).click();
+await page.getByText("照护记录已保存", { exact: true }).waitFor();
+assert.equal(
+  await page.evaluate(
+    () => JSON.parse(localStorage.getItem("little-days-v1")).careRecords.length,
+  ),
+  7,
+);
+await context.setOffline(false);
+await page.screenshot({
+  path: path.join(
+    process.env.TEMP ?? "docs",
+    "little-days-daily-care-dark.png",
+  ),
 });
 assert.deepEqual(errors, []);
 console.log(
