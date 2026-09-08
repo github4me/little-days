@@ -257,7 +257,7 @@ export default function PlayLearning({
             contentContainerStyle={{ padding: 20, gap: 14 }}
           >
             <T raw style={{ fontSize: 18, fontWeight: "700" }}>
-              {text("确认活动选择", "Confirm activity selection")}
+              {text("确认添加早教活动", "Confirm play activity")}
             </T>
             <T raw>{pendingActivity ? copy(pendingActivity.title) : ""}</T>
             <T raw accessibilityRole="alert">
@@ -285,8 +285,8 @@ export default function PlayLearning({
             {error === "save" ? (
               <T raw accessibilityRole="alert">
                 {text(
-                  "活动选择未保存，请重试。",
-                  "Selection was not saved. Please try again.",
+                  "早教设置未保存，请重试。",
+                  "Play settings were not saved. Please try again.",
                 )}
               </T>
             ) : null}
@@ -321,10 +321,12 @@ export default function PlayLearning({
                 "日常照护，按需要记录",
                 "Everyday care, recorded when needed",
               )
-            : text(
-                "把日常，变成一起玩的时光",
-                "A little play in everyday moments",
-              )}
+            : mode === "choose"
+              ? text("设置适合你们的早教活动", "Choose the play that suits you")
+              : text(
+                  "把日常，变成一起玩的时光",
+                  "A little play in everyday moments",
+                )}
         </T>
         <T raw style={{ color: c.muted, fontSize: 13, lineHeight: 20 }}>
           {mode === "care"
@@ -332,10 +334,15 @@ export default function PlayLearning({
                 "记录实际做过的照护，不是每日任务。测温、洗澡等记录会保留历史，填写后点保存才生效。",
                 "Record care you actually provided, not daily tasks. Temperature and care history are kept; drafts are only stored when you tap Save.",
               )
-            : text(
-                "给家长看的活动清单，不是宝宝的屏幕课程。先读步骤，再放下手机陪伴。做过可自愿打卡，不必全部完成。",
-                "A play checklist for parents, not screen lessons for babies. Read first, then put the phone away. Check in if you like; there is no need to do everything.",
-              )}
+            : mode === "choose"
+              ? text(
+                  "按月龄浏览并选择，勾选后自动保存，所选项目会显示在「早教活动」。可跨月龄选择，参考范围不符时会提示。",
+                  "Browse by age and choose activities. Selections save automatically and appear in Play activities. You can choose other ages; a prompt flags activities outside your baby's reference age.",
+                )
+              : text(
+                  "给家长参考的亲子早教活动，不是宝宝的屏幕课程。先读步骤，再放下手机陪伴。做过可自愿打卡，不必全部完成。",
+                  "Parent-led play activities, not screen lessons for babies. Read first, then put the phone away. Check in if you like; there is no need to do everything.",
+                )}
         </T>
       </View>
       {mode === "choose" ? (
@@ -428,7 +435,7 @@ export default function PlayLearning({
           {
             value: "today",
             icon: "activities",
-            label: text("活动清单", "Activities"),
+            label: text("早教活动", "Play activities"),
           },
           {
             value: "care",
@@ -438,7 +445,7 @@ export default function PlayLearning({
           {
             value: "choose",
             icon: "choose",
-            label: text("选择活动", "Choose activities"),
+            label: text("设置早教", "Play settings"),
           },
         ]}
       />
@@ -457,13 +464,13 @@ export default function PlayLearning({
               <T raw accessibilityRole="alert" style={{ color: c.primary }}>
                 {error === "load"
                   ? text(
-                      "活动选择无法读取，原数据未覆盖。",
-                      "Activity selections could not be loaded; existing data was not changed.",
+                      "早教设置无法读取，原数据未覆盖。",
+                      "Play settings could not be loaded; existing data was not changed.",
                     )
                   : error === "save"
                     ? text(
-                        "活动选择未保存，请重试。",
-                        "Selection was not saved. Please try again.",
+                        "早教设置未保存，请重试。",
+                        "Play settings were not saved. Please try again.",
                       )
                     : text(
                         "无法打开参考链接，请联网后重试。",
@@ -476,7 +483,7 @@ export default function PlayLearning({
                   onPress={() => setRetry((v) => v + 1)}
                   style={{ minHeight: 44, justifyContent: "center" }}
                 >
-                  <T raw>{text("重新读取活动选择", "Reload selections")}</T>
+                  <T raw>{text("重新读取早教设置", "Reload play settings")}</T>
                 </Pressable>
               ) : null}
             </View>
@@ -686,8 +693,8 @@ export default function PlayLearning({
                     accessibilityRole="checkbox"
                     aria-checked={saved}
                     accessibilityLabel={text(
-                      `选择活动：${a.title.zh}`,
-                      `Select activity: ${a.title.en}`,
+                      `选择早教活动：${a.title.zh}`,
+                      `Select play activity: ${a.title.en}`,
                     )}
                     accessibilityState={{
                       checked: saved,
@@ -705,8 +712,8 @@ export default function PlayLearning({
                     <T raw style={{ color: c.primary, fontSize: 13 }}>
                       {saved ? "☑ " : "□ "}
                       {text(
-                        saved ? "已选入清单" : "加入清单",
-                        saved ? "Selected" : "Add to list",
+                        saved ? "已选早教活动" : "加入早教活动",
+                        saved ? "Selected" : "Add to activities",
                       )}
                     </T>
                   </Pressable>
@@ -717,10 +724,10 @@ export default function PlayLearning({
           {!shown.length ? (
             <T raw style={{ color: c.muted }}>
               {!ready
-                ? text("正在读取活动选择…", "Loading activity selections…")
+                ? text("正在读取早教设置…", "Loading play settings…")
                 : text(
-                    "活动清单还是空的，请到「选择活动」添加。未设置出生日期时不会自动选择。",
-                    "Your list is empty. Add items in Choose activities. No activities are selected automatically without a birth date.",
+                    "还没有早教活动，请到「设置早教」添加。未设置出生日期时不会自动选择。",
+                    "No play activities yet. Add them in Play settings. No activities are selected automatically without a birth date.",
                   )}
             </T>
           ) : null}
@@ -733,8 +740,8 @@ export default function PlayLearning({
             </T>
             <T raw style={{ fontSize: 11, lineHeight: 18, color: c.muted }}>
               {text(
-                "活动由参考资料整理改写，时长和分组为浏览建议，未作临床验证。打卡仅表示今天做过，不代表完成建议活动量。活动选择和每日打卡仅保存在本机，不包含在记录备份中。",
-                "Activities are editorial adaptations; times and age groups are browsing suggestions, not clinically validated guidance. A check-in means you tried it today, not that a recommended activity amount was met. Activity selections and dated check-ins stay locally and are not included in record backups.",
+                "活动由参考资料整理改写，时长和分组为浏览建议，未作临床验证。打卡仅表示今天做过，不代表完成建议活动量。早教设置和每日打卡仅保存在本机，不包含在记录备份中。",
+                "Activities are editorial adaptations; times and age groups are browsing suggestions, not clinically validated guidance. A check-in means you tried it today, not that a recommended activity amount was met. Play settings and dated check-ins stay locally and are not included in record backups.",
               )}
             </T>
             <Pressable
