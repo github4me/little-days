@@ -8,6 +8,8 @@ import {
   learningSources,
   parsePlayFavorites,
   playActivities,
+  playDayKey,
+  playCheckinKey,
 } from "./learning";
 
 test("play age uses completed calendar months and safely handles missing or invalid birthdays", () => {
@@ -19,6 +21,27 @@ test("play age uses completed calendar months and safely handles missing or inva
   for (const birth of ["", "invalid", "2026-02-30", "2026-13-01", "2026-09-09"])
     assert.equal(completedMonths(birth, new Date(2026, 8, 8)), null);
   assert.equal(completedMonths("2026-07-01", new Date(NaN)), null);
+});
+
+test("check-ins use validated local calendar dates including midnight and DST days", () => {
+  assert.equal(playDayKey(new Date(2026, 8, 8, 23, 59)), "2026-09-08");
+  assert.equal(playDayKey(new Date(2026, 8, 9, 0, 0)), "2026-09-09");
+  for (const day of ["2026-04-05", "2026-10-04", "2024-02-29"])
+    assert.equal(playCheckinKey(day), `play-checkins-${day}`);
+  for (const day of [
+    "2026-02-29",
+    "2026-02-30",
+    "2026-13-01",
+    "bad",
+    "2026-9-08",
+    "__proto__",
+  ])
+    assert.throws(() => playCheckinKey(day));
+  assert.throws(() => playDayKey(new Date(NaN)));
+  assert.ok(activitiesForMonths(0).some((a) => a.id === "contrast-card"));
+  assert.ok(!activitiesForMonths(3).some((a) => a.id === "contrast-card"));
+  assert.ok(activitiesForMonths(5).some((a) => a.id === "tummy-time"));
+  assert.ok(!activitiesForMonths(6).some((a) => a.id === "tummy-time"));
 });
 
 test("every supported age has two distinct safe-filtered daily ideas stable within a local day", () => {

@@ -71,13 +71,13 @@ await page.route("http://little-days.test/**", async (route) => {
 
 await page.goto("http://little-days.test/");
 await page.getByText("宝宝的小日子", { exact: true }).waitFor();
-await page.getByRole("tab", { name: "玩学", exact: true }).click();
+await page.getByRole("tab", { name: "早教", exact: true }).click();
 await page
   .getByText("还没有可用的出生日期，请先选月龄浏览。", { exact: true })
   .waitFor();
 assert.equal(await page.getByRole("button", { name: /^查看/ }).count(), 0);
 await page.getByRole("button", { name: "0–2 个月", exact: true }).click();
-assert.equal(await page.getByRole("button", { name: /^查看/ }).count(), 2);
+assert.equal(await page.getByRole("button", { name: /^查看/ }).count(), 5);
 await page.getByRole("tab", { name: "今天", exact: true }).click();
 assert.equal(await page.getByText("最近记录", { exact: true }).count(), 0);
 await page.evaluate(() => {
@@ -585,8 +585,8 @@ assert.equal(
   await page.getByRole("button", { name: "编辑喂奶", exact: true }).count(),
   1,
 );
-await page.getByRole("tab", { name: "玩学", exact: true }).click();
-await page.getByText("亲子玩学", { exact: true }).waitFor();
+await page.getByRole("tab", { name: "早教", exact: true }).click();
+await page.getByText("亲子早教", { exact: true }).waitFor();
 await page.getByRole("button", { name: "18–23 个月", exact: true }).click();
 await page.getByRole("button", { name: "生活场景", exact: true }).click();
 await page.getByRole("button", { name: "日常照护", exact: true }).click();
@@ -639,12 +639,12 @@ assert.equal(
   ),
   true,
 );
-await page.getByRole("button", { name: "Today’s ideas", exact: true }).click();
+await page.getByRole("button", { name: "Activities", exact: true }).click();
 await page.screenshot({
   path: path.join(process.env.TEMP ?? "docs", "little-days-play-dark.png"),
 });
 await page.reload();
-await page.getByRole("tab", { name: "玩学", exact: true }).click();
+await page.getByRole("tab", { name: "早教", exact: true }).click();
 await page.getByRole("button", { name: "我的收藏", exact: true }).click();
 await page
   .getByRole("button", { name: "取消收藏今天穿哪一件？", exact: true })
@@ -669,7 +669,7 @@ await page.evaluate(() => {
   localStorage.setItem("little-days-v1-play-favorites", "corrupt");
 });
 await page.reload();
-await page.getByRole("tab", { name: "玩学", exact: true }).click();
+await page.getByRole("tab", { name: "早教", exact: true }).click();
 await page
   .getByText("收藏暂时无法读取，原数据未覆盖。", { exact: true })
   .waitFor();
@@ -710,6 +710,104 @@ await page.getByRole("button", { name: /^取消收藏/ }).waitFor();
 await page.getByRole("button", { name: "我的收藏", exact: true }).click();
 await page.getByRole("button", { name: /^取消收藏/ }).waitFor();
 await context.setOffline(false);
+// Daily check-ins save immediately, work offline and remain separate from favorites.
+await page.getByRole("button", { name: "活动清单", exact: true }).click();
+await page.getByRole("button", { name: "0–2 个月", exact: true }).click();
+const contrastCheck = () =>
+  page.getByRole("checkbox", { name: "今天做过：看看黑白卡", exact: true });
+await contrastCheck().waitFor();
+await context.setOffline(true);
+await contrastCheck().click();
+await page
+  .getByRole("checkbox", { name: "今天做过：看看黑白卡", checked: true })
+  .waitFor();
+await context.setOffline(false);
+const checkinKey = await page.evaluate(() => {
+  const d = new Date();
+  return `little-days-v1-play-checkins-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+});
+assert.deepEqual(
+  await page.evaluate(
+    (key) => JSON.parse(localStorage.getItem(key)),
+    checkinKey,
+  ),
+  ["contrast-card"],
+);
+await page.reload();
+await page.getByRole("tab", { name: "早教", exact: true }).click();
+await page.getByRole("button", { name: "0–2 个月", exact: true }).click();
+await page
+  .getByRole("checkbox", { name: "今天做过：看看黑白卡", checked: true })
+  .waitFor();
+await contrastCheck().click();
+await page
+  .getByRole("checkbox", { name: "今天做过：看看黑白卡", checked: false })
+  .waitFor();
+assert.deepEqual(
+  await page.evaluate(
+    (key) => JSON.parse(localStorage.getItem(key)),
+    checkinKey,
+  ),
+  [],
+);
+await page.evaluate(() => {
+  window.checkinSetItem = Storage.prototype.setItem;
+  Storage.prototype.setItem = function (key, value) {
+    if (key.includes("play-checkins-"))
+      throw new Error("simulated check-in failure");
+    return window.checkinSetItem.call(this, key, value);
+  };
+});
+await contrastCheck().click();
+await page.getByText("打卡未保存，请重试。", { exact: true }).waitFor();
+assert.equal(await contrastCheck().getAttribute("aria-checked"), "false");
+await page.evaluate((key) => {
+  Storage.prototype.setItem = window.checkinSetItem;
+  delete window.checkinSetItem;
+  localStorage.setItem(key, "corrupt");
+}, checkinKey);
+await page.reload();
+await page.getByRole("tab", { name: "早教", exact: true }).click();
+await page
+  .getByText("今日打卡无法读取，原数据未覆盖。", { exact: true })
+  .waitFor();
+assert.equal(
+  await page.evaluate((key) => localStorage.getItem(key), checkinKey),
+  "corrupt",
+);
+await page.evaluate((key) => localStorage.removeItem(key), checkinKey);
+await page.getByRole("button", { name: "重新读取打卡", exact: true }).click();
+await page.getByRole("button", { name: "0–2 个月", exact: true }).click();
+await contrastCheck().click();
+await page
+  .getByRole("checkbox", { name: "今天做过：看看黑白卡", checked: true })
+  .waitFor();
+// Crossing local midnight resets today's controls, without erasing yesterday.
+const nextDay = new Date();
+nextDay.setDate(nextDay.getDate() + 1);
+nextDay.setHours(0, 1, 0, 0);
+await page.clock.setFixedTime(nextDay);
+await page
+  .getByRole("checkbox", { name: "今天做过：看看黑白卡", checked: false })
+  .waitFor();
+assert.deepEqual(
+  await page.evaluate(
+    (key) => JSON.parse(localStorage.getItem(key)),
+    checkinKey,
+  ),
+  ["contrast-card"],
+);
+await page.getByRole("tab", { name: "我的", exact: true }).click();
+await page.getByRole("button", { name: "English", exact: true }).click();
+await page.getByRole("tab", { name: "Play", exact: true }).click();
+await page.getByRole("button", { name: "0–2 months", exact: true }).click();
+await page
+  .getByRole("button", { name: "View Awake tummy time", exact: true })
+  .click();
+await assertNoUntranslatedChinese("Early play new activities and check-ins");
+await page.screenshot({
+  path: path.join(process.env.TEMP ?? "docs", "little-days-checkins.png"),
+});
 assert.deepEqual(errors, []);
 console.log(
   "PASS: clean home, removed controls/milestones, daily chart summaries and intervals, unit switch, confirmed deletion without undo, growth, old data retained, dark mode, narrow layout.",

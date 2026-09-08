@@ -16,6 +16,14 @@ export const ageBands = [
   { min: 18, max: 24, label: "18–23" },
 ] as const;
 export const learningSources = {
+  vision: {
+    label: "AAP · Newborn vision",
+    url: "https://www.healthychildren.org/English/ages-stages/baby/Pages/Developmental-Milestones-1-Month.aspx",
+  },
+  tummy: {
+    label: "NIH · Tummy time",
+    url: "https://safetosleep.nichd.nih.gov/reduce-risk/tummy-time",
+  },
   cdc2: {
     label: "CDC · 2 months",
     url: "https://www.cdc.gov/act-early/milestones/2-months.html",
@@ -62,6 +70,62 @@ export type PlayActivity = {
 // Editorial play ideas, not milestone tests. Bounds are broad browsing aids,
 // not scientifically validated prescriptions or developmental deadlines.
 export const playActivities: PlayActivity[] = [
+  {
+    id: "contrast-card",
+    min: 0,
+    max: 3,
+    scene: "quiet",
+    minutes: "1–2",
+    title: words("看看黑白卡", "Black-and-white cards"),
+    focus: words("轻松注视，不是视力训练", "Looking, not vision training"),
+    materials: words(
+      "完整、无锐边的纸质黑白卡或硬页书",
+      "An intact, smooth-edged printed contrast card or board book",
+    ),
+    steps: [
+      words(
+        "宝宝清醒舒适时，成人拿稳一张简单图案，放在脸前约 20–30 厘米处。",
+        "While baby is awake and comfortable, hold a simple pattern about 20–30 cm from their face.",
+      ),
+      words(
+        "让宝宝自己看，也可以换成看你的脸；转开目光就休息，不要求看满时长。",
+        "Let baby look, or offer your face instead. Pause when they look away; there is no time target.",
+      ),
+    ],
+    safety: words(
+      "不用手机展示，不把卡片放入睡眠空间或让宝宝咬碎。黑白卡只是可选互动，不保证提升视力或智力。",
+      "Use a printed card, not a screen. Keep it out of the sleep space and prevent chewing off pieces. This optional game does not promise better vision or intelligence.",
+    ),
+    source: "vision",
+  },
+  {
+    id: "tummy-time",
+    min: 0,
+    max: 6,
+    scene: "floor",
+    minutes: "3–5",
+    title: words("清醒时趴一会儿", "Awake tummy time"),
+    focus: words("自主抬头与活动", "Moving and lifting the head"),
+    materials: words(
+      "地面上平坦、稳固、清空的活动垫",
+      "A flat, firm, clear mat on the floor",
+    ),
+    steps: [
+      words(
+        "选择宝宝清醒、成人也清醒能全程看护的时候，在地垫上轻轻让宝宝俯卧，成人面对面陪伴。",
+        "When baby and caregiver are awake, gently place baby on their tummy on the mat. Stay face to face and watch throughout.",
+      ),
+      words(
+        "从短时间开始，观察宝宝反应，不适就停；逐步增加，不按打卡数决定活动量。",
+        "Begin with short sessions and stop for discomfort. Build up gradually; check-in counts do not determine how much to do.",
+      ),
+    ],
+    safety: words(
+      "只在清醒且成人全程看护时进行，不强行抬头。困了立即结束，转移到独立、平坦坚实且无杂物的睡眠空间，仰卧入睡；有特殊健康情况先问医生。",
+      "Awake and supervised only; never force the head up. If sleepy, stop and place baby on their back in a separate, flat, firm, clear sleep space. Ask a clinician first about special health needs.",
+    ),
+    source: "tummy",
+  },
   {
     id: "little-conversation",
     min: 0,
@@ -394,4 +458,18 @@ export function parsePlayFavorites(raw: string | null): string[] {
   return [...new Set(value as string[])].filter((id) =>
     playActivities.some((a) => a.id === id),
   );
+}
+
+// Calendar days, not rolling 24-hour windows: check-ins reset at local midnight.
+export function playDayKey(now: Date): string {
+  if (!Number.isFinite(now.getTime())) throw new Error("Invalid play date");
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+export function playCheckinKey(day: string): string {
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(day) ||
+    playDayKey(new Date(`${day}T12:00:00`)) !== day
+  )
+    throw new Error("Invalid check-in day");
+  return `play-checkins-${day}`;
 }

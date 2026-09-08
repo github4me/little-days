@@ -345,7 +345,7 @@ function BabyApp({
     today: "今天的小日子",
     records: "每一天，都记得",
     growth: "慢慢长大的你",
-    play: "亲子玩学",
+    play: "亲子早教",
     settings: "我的",
   };
   function entryRow(e: Entry) {
@@ -980,7 +980,7 @@ function BabyApp({
                 ["today", "⌂", "今天"],
                 ["records", "≡", "记录"],
                 ["growth", "↗", "成长"],
-                ["play", "♡", "玩学"],
+                ["play", "♡", "早教"],
                 ["settings", "☷", "我的"],
               ].map(([key, icon, label]) => (
                 <Pressable

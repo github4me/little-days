@@ -4,8 +4,22 @@ import {
   type ReminderSettings,
 } from "./reminderSettings";
 import type { LanguagePreference } from "./i18n";
-import { parsePlayFavorites } from "./learning";
+import { parsePlayFavorites, playCheckinKey } from "./learning";
 const KEY = "little-days-v1";
+export async function loadPlayCheckins(day: string): Promise<string[]> {
+  return parsePlayFavorites(
+    localStorage.getItem(KEY + "-" + playCheckinKey(day)),
+  );
+}
+export async function savePlayCheckins(
+  day: string,
+  ids: string[],
+): Promise<void> {
+  localStorage.setItem(
+    KEY + "-" + playCheckinKey(day),
+    JSON.stringify(parsePlayFavorites(JSON.stringify(ids))),
+  );
+}
 export async function loadPlayFavorites(): Promise<string[]> {
   return parsePlayFavorites(localStorage.getItem(KEY + "-play-favorites"));
 }

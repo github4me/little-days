@@ -2,12 +2,17 @@ import React, { useContext, useEffect, useRef, useState } from "react";
 import { Linking, Pressable, ScrollView, View } from "react-native";
 import { Card, T, Theme } from "./ui";
 import { useI18n } from "./i18n";
-import { loadPlayFavorites, savePlayFavorites } from "./storage";
+import {
+  loadPlayFavorites,
+  savePlayFavorites,
+  loadPlayCheckins,
+  savePlayCheckins,
+} from "./storage";
 import {
   activitiesForMonths,
   ageBands,
   completedMonths,
-  dailyActivities,
+  playDayKey,
   learningSources,
   playActivities,
   scenes,
@@ -92,6 +97,56 @@ export default function PlayLearning({
   const [error, setError] = useState<"load" | "save" | "link" | null>(null);
   const [retry, setRetry] = useState(0);
   const lock = useRef(false);
+  const day = playDayKey(new Date(now));
+  const [checkins, setCheckins] = useState<{
+    day: string;
+    ids: string[];
+  } | null>(null);
+  const [checkinError, setCheckinError] = useState<"load" | "save" | null>(
+    null,
+  );
+  const [checkinRetry, setCheckinRetry] = useState(0);
+  const [checking, setChecking] = useState(false);
+  const checkinLock = useRef(false);
+  const currentDay = useRef(day);
+  currentDay.current = day;
+  const checkinsReady = checkins?.day === day;
+  const doneToday = checkinsReady ? checkins.ids : [];
+  useEffect(() => {
+    let active = true;
+    setCheckins(null);
+    setCheckinError(null);
+    void loadPlayCheckins(day)
+      .then((ids) => {
+        if (active) setCheckins({ day, ids });
+      })
+      .catch(() => {
+        if (active) setCheckinError("load");
+      });
+    return () => {
+      active = false;
+    };
+  }, [day, checkinRetry]);
+  async function toggleCheckin(id: string) {
+    if (!checkinsReady || checkinLock.current) return;
+    checkinLock.current = true;
+    setChecking(true);
+    const next = doneToday.includes(id)
+      ? doneToday.filter((v) => v !== id)
+      : [...doneToday, id];
+    try {
+      await savePlayCheckins(day, next);
+      if (currentDay.current === day) {
+        setCheckins({ day, ids: next });
+        setCheckinError(null);
+      }
+    } catch {
+      if (currentDay.current === day) setCheckinError("save");
+    } finally {
+      checkinLock.current = false;
+      setChecking(false);
+    }
+  }
   useEffect(() => {
     let active = true;
     void loadPlayFavorites()
@@ -121,7 +176,7 @@ export default function PlayLearning({
       : months === null
         ? []
         : mode === "today"
-          ? dailyActivities(months, new Date(now))
+          ? eligible
           : eligible.filter((a) => a.scene === scene);
   async function toggleFavorite(id: string) {
     if (!ready || lock.current) return;
@@ -166,8 +221,8 @@ export default function PlayLearning({
         </T>
         <T raw style={{ color: c.muted, fontSize: 13, lineHeight: 20 }}>
           {text(
-            "给家长看的点子，不是宝宝的屏幕课程。先读步骤，再放下手机；全程陪伴，累了就停，不必打卡。",
-            "Ideas for parents, not screen lessons for babies. Read first, then put the phone away. Stay together, stop when tired; no streaks to keep.",
+            "给家长看的活动清单，不是宝宝的屏幕课程。先读步骤，再放下手机陪伴。做过可自愿打卡，不必全部完成。",
+            "A play checklist for parents, not screen lessons for babies. Read first, then put the phone away. Check in if you like; there is no need to do everything.",
           )}
         </T>
       </View>
@@ -253,7 +308,7 @@ export default function PlayLearning({
           {
             value: "today",
             icon: "☀",
-            label: text("今日点子", "Today’s ideas"),
+            label: text("活动清单", "Activities"),
           },
           { value: "scenes", icon: "▧", label: text("生活场景", "By setting") },
           {
@@ -306,13 +361,42 @@ export default function PlayLearning({
           ) : null}
         </View>
       ) : null}
-      {mode === "today" && months !== null ? (
-        <T raw style={{ color: c.muted, fontSize: 12 }}>
-          {text(
-            "每天两个点子，想玩哪个都可以，也可以重复昨天的。",
-            "Two ideas a day. Choose either, skip both, or repeat a favourite.",
-          )}
-        </T>
+      <T raw style={{ color: c.muted, fontSize: 12 }}>
+        {day} ·{" "}
+        {checkinsReady
+          ? text(
+              `今天做过 ${doneToday.length} 项，自在选择就好`,
+              `${doneToday.length} checked in today. Choose freely.`,
+            )
+          : text("正在读取今日打卡…", "Loading today's check-ins…")}
+      </T>
+      {checkinError ? (
+        <View>
+          <T
+            raw
+            accessibilityRole="alert"
+            style={{ fontSize: 13, color: c.primary }}
+          >
+            {checkinError === "load"
+              ? text(
+                  "今日打卡无法读取，原数据未覆盖。",
+                  "Today's check-ins could not be loaded; existing data was not changed.",
+                )
+              : text(
+                  "打卡未保存，请重试。",
+                  "Check-in was not saved. Please try again.",
+                )}
+          </T>
+          {checkinError === "load" ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setCheckinRetry((v) => v + 1)}
+              style={{ minHeight: 44, justifyContent: "center" }}
+            >
+              <T raw>{text("重新读取打卡", "Reload check-ins")}</T>
+            </Pressable>
+          ) : null}
+        </View>
       ) : null}
       {shown.map((a) => {
         const open = expanded === a.id;
@@ -409,34 +493,76 @@ export default function PlayLearning({
                 </Pressable>
               </View>
             ) : null}
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={text(
-                `${saved ? "取消收藏" : "收藏"}${a.title.zh}`,
-                `${saved ? "Unfavorite" : "Favorite"} ${a.title.en}`,
-              )}
-              accessibilityState={{
-                selected: saved,
-                disabled: !ready || saving,
-              }}
-              disabled={!ready || saving}
-              onPress={() => void toggleFavorite(a.id)}
+            <View
               style={{
-                minHeight: 44,
-                justifyContent: "center",
-                alignSelf: "flex-start",
-                paddingHorizontal: 4,
-                opacity: ready && !saving ? 1 : 0.5,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 8,
               }}
             >
-              <T raw style={{ color: c.primary, fontSize: 13 }}>
-                {saved ? "★ " : "☆ "}
-                {text(
-                  saved ? "已收藏" : "收藏点子",
-                  saved ? "Favorited" : "Keep this idea",
+              <Pressable
+                accessibilityRole="checkbox"
+                aria-checked={doneToday.includes(a.id)}
+                accessibilityLabel={text(
+                  `今天做过：${a.title.zh}`,
+                  `Done today: ${a.title.en}`,
                 )}
-              </T>
-            </Pressable>
+                accessibilityState={{
+                  checked: doneToday.includes(a.id),
+                  disabled: !checkinsReady || checking,
+                }}
+                disabled={!checkinsReady || checking}
+                onPress={() => void toggleCheckin(a.id)}
+                style={{
+                  minHeight: 44,
+                  justifyContent: "center",
+                  flexShrink: 1,
+                  opacity: checkinsReady && !checking ? 1 : 0.5,
+                }}
+              >
+                <T
+                  raw
+                  style={{ color: c.primary, fontSize: 13, fontWeight: "600" }}
+                >
+                  {doneToday.includes(a.id) ? "☑ " : "□ "}
+                  {text(
+                    doneToday.includes(a.id) ? "今天已打卡" : "今天做过",
+                    doneToday.includes(a.id)
+                      ? "Checked in today"
+                      : "Done today",
+                  )}
+                </T>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={text(
+                  `${saved ? "取消收藏" : "收藏"}${a.title.zh}`,
+                  `${saved ? "Unfavorite" : "Favorite"} ${a.title.en}`,
+                )}
+                accessibilityState={{
+                  selected: saved,
+                  disabled: !ready || saving,
+                }}
+                disabled={!ready || saving}
+                onPress={() => void toggleFavorite(a.id)}
+                style={{
+                  minHeight: 44,
+                  justifyContent: "center",
+                  alignSelf: "flex-start",
+                  paddingHorizontal: 4,
+                  opacity: ready && !saving ? 1 : 0.5,
+                }}
+              >
+                <T raw style={{ color: c.primary, fontSize: 13 }}>
+                  {saved ? "★ " : "☆ "}
+                  {text(
+                    saved ? "已收藏" : "收藏点子",
+                    saved ? "Favorited" : "Keep this idea",
+                  )}
+                </T>
+              </Pressable>
+            </View>
           </Card>
         );
       })}
@@ -466,8 +592,8 @@ export default function PlayLearning({
         </T>
         <T raw style={{ fontSize: 11, lineHeight: 18, color: c.muted }}>
           {text(
-            "首版离线活动由参考资料整理改写，时长和分组为产品建议，未作临床验证。收藏仅存本机，不包含在记录备份中。",
-            "These offline ideas are editorial adaptations. Durations and age groups are suggestions, not clinically validated guidance. Favorites stay on this device and are not included in record backups.",
+            "活动由参考资料整理改写，时长和分组为浏览建议，未作临床验证。打卡仅表示今天做过，不代表完成建议活动量。收藏和打卡按本机日期保存在本机，不包含在记录备份中。",
+            "Activities are editorial adaptations; times and age groups are browsing suggestions, not clinically validated guidance. A check-in means you tried it today, not that a recommended activity amount was met. Favorites and dated check-ins stay locally and are not included in record backups.",
           )}
         </T>
         <Pressable
