@@ -10,6 +10,10 @@ import {
   playActivities,
   playDayKey,
   playCheckinKey,
+  parsePlaySelection,
+  selectedPlayIds,
+  changePlaySelection,
+  activitiesForBand,
 } from "./learning";
 
 test("play age uses completed calendar months and safely handles missing or invalid birthdays", () => {
@@ -21,6 +25,58 @@ test("play age uses completed calendar months and safely handles missing or inva
   for (const birth of ["", "invalid", "2026-02-30", "2026-13-01", "2026-09-09"])
     assert.equal(completedMonths(birth, new Date(2026, 8, 8)), null);
   assert.equal(completedMonths("2026-07-01", new Date(NaN)), null);
+});
+
+test("activity defaults follow actual age while manual choices survive age changes", () => {
+  const initial = parsePlaySelection(null);
+  assert.deepEqual(selectedPlayIds(null, initial), []);
+  assert.deepEqual(
+    selectedPlayIds(2, initial),
+    activitiesForMonths(2).map((a) => a.id),
+  );
+  const excluded = changePlaySelection(initial, "contrast-card", false);
+  assert.ok(!selectedPlayIds(2, excluded).includes("contrast-card"));
+  const crossAge = changePlaySelection(excluded, "choose-shirt", true);
+  assert.ok(selectedPlayIds(2, crossAge).includes("choose-shirt"));
+  assert.deepEqual(selectedPlayIds(null, crossAge), ["choose-shirt"]);
+  assert.ok(selectedPlayIds(3, crossAge).includes("picture-chat"));
+  assert.ok(selectedPlayIds(3, crossAge).includes("choose-shirt"));
+  assert.ok(!selectedPlayIds(3, crossAge).includes("contrast-card"));
+  assert.deepEqual(parsePlaySelection(JSON.stringify(crossAge)), crossAge);
+  const empty = activitiesForMonths(2).reduce(
+    (s, a) => changePlaySelection(s, a.id, false),
+    initial,
+  );
+  assert.deepEqual(
+    selectedPlayIds(2, parsePlaySelection(JSON.stringify(empty))),
+    [],
+  );
+  assert.deepEqual(selectedPlayIds(25, initial), []);
+  assert.throws(() => changePlaySelection(initial, "missing", true));
+});
+test("selection parsing rejects corruption and month groups expose overlapping activities", () => {
+  for (const raw of [
+    "bad",
+    "{}",
+    "null",
+    "[]",
+    '{"included":[],"excluded":[2]}',
+    '{"included":["peekaboo"],"excluded":["peekaboo"]}',
+    '{"included":[],"excluded":[],"extra":true}',
+  ])
+    assert.throws(() => parsePlaySelection(raw));
+  assert.deepEqual(
+    parsePlaySelection(
+      '{"included":["peekaboo","peekaboo","missing"],"excluded":[]}',
+    ),
+    { included: ["peekaboo"], excluded: [] },
+  );
+  assert.ok(activitiesForBand(3).some((a) => a.id === "reach-toy")); // 4 months within the 3–5 group
+  const browsable = new Set(
+    ageBands.flatMap((b) => activitiesForBand(b.min)).map((a) => a.id),
+  );
+  assert.equal(browsable.size, playActivities.length);
+  assert.deepEqual(activitiesForBand(-1), []);
 });
 
 test("check-ins use validated local calendar dates including midnight and DST days", () => {

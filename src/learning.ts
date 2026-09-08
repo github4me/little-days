@@ -767,6 +767,65 @@ export function parsePlayFavorites(raw: string | null): string[] {
   );
 }
 
+export type PlaySelection = { included: string[]; excluded: string[] };
+export function parsePlaySelection(raw: string | null): PlaySelection {
+  if (raw === null) return { included: [], excluded: [] };
+  const value: unknown = JSON.parse(raw);
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    Object.keys(value).some((k) => k !== "included" && k !== "excluded")
+  )
+    throw new Error("Invalid activity selection");
+  const v = value as Record<string, unknown>;
+  if (!Array.isArray(v.included) || !Array.isArray(v.excluded))
+    throw new Error("Invalid activity selection");
+  const included = parsePlayFavorites(JSON.stringify(v.included));
+  const excluded = parsePlayFavorites(JSON.stringify(v.excluded));
+  if (included.some((id) => excluded.includes(id)))
+    throw new Error("Conflicting activity selection");
+  return { included, excluded };
+}
+export function selectedPlayIds(
+  months: number | null,
+  selection: PlaySelection,
+): string[] {
+  const defaults =
+    months === null ? [] : activitiesForMonths(months).map((a) => a.id);
+  return playActivities
+    .filter(
+      (a) =>
+        !selection.excluded.includes(a.id) &&
+        (defaults.includes(a.id) || selection.included.includes(a.id)),
+    )
+    .map((a) => a.id);
+}
+export function changePlaySelection(
+  selection: PlaySelection,
+  id: string,
+  selected: boolean,
+): PlaySelection {
+  if (!playActivities.some((a) => a.id === id))
+    throw new Error("Unknown activity");
+  return {
+    included: [
+      ...selection.included.filter((v) => v !== id),
+      ...(selected ? [id] : []),
+    ],
+    excluded: [
+      ...selection.excluded.filter((v) => v !== id),
+      ...(selected ? [] : [id]),
+    ],
+  };
+}
+export function activitiesForBand(min: number): PlayActivity[] {
+  const band = ageBands.find((b) => b.min === min);
+  return band
+    ? playActivities.filter((a) => a.min < band.max && a.max > band.min)
+    : [];
+}
+
 // Calendar days, not rolling 24-hour windows: check-ins reset at local midnight.
 export function playDayKey(now: Date): string {
   if (!Number.isFinite(now.getTime())) throw new Error("Invalid play date");

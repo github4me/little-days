@@ -1,17 +1,20 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
-import { Linking, Pressable, ScrollView, View } from "react-native";
-import { Card, T, Theme } from "./ui";
+import { Linking, Modal, Pressable, ScrollView, View } from "react-native";
+import { Button, Card, T, Theme } from "./ui";
 import { useI18n } from "./i18n";
 import DailyCare from "./DailyCare";
 import type { CareRecord } from "./domain";
 import {
-  loadPlayFavorites,
-  savePlayFavorites,
+  loadPlaySelection,
+  savePlaySelection,
   loadPlayCheckins,
   savePlayCheckins,
 } from "./storage";
 import {
-  activitiesForMonths,
+  activitiesForBand,
+  selectedPlayIds,
+  changePlaySelection,
+  type PlaySelection,
   ageBands,
   completedMonths,
   playDayKey,
@@ -97,7 +100,11 @@ export default function PlayLearning({
   const [manualMonths, setManualMonths] = useState<number | null>(null);
   const [mode, setMode] = useState("today");
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [favorites, setFavorites] = useState<string[]>([]);
+  const [selection, setSelection] = useState<PlaySelection>({
+    included: [],
+    excluded: [],
+  });
+  const [pendingSelection, setPendingSelection] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<"load" | "save" | "link" | null>(null);
@@ -155,10 +162,11 @@ export default function PlayLearning({
   }
   useEffect(() => {
     let active = true;
-    void loadPlayFavorites()
-      .then((ids) => {
+    setReady(false);
+    void loadPlaySelection()
+      .then((value) => {
         if (active) {
-          setFavorites(ids);
+          setSelection(value);
           setReady(true);
           setError(null);
         }
@@ -173,25 +181,40 @@ export default function PlayLearning({
   useEffect(() => {
     setManualMonths(null);
     setExpanded(null);
+    setPendingSelection(null);
   }, [birthDate]);
-  const months = manualMonths ?? (actualSupported ? actualMonths : null);
-  const eligible = months === null ? [] : activitiesForMonths(months);
+  const months =
+    manualMonths ??
+    (actualSupported
+      ? ageBands.find((b) => actualMonths >= b.min && actualMonths < b.max)!.min
+      : 0);
+  const selectedIds = ready ? selectedPlayIds(actualMonths, selection) : [];
+  const pendingActivity = playActivities.find((a) => a.id === pendingSelection);
   const shown =
-    mode === "favorites"
-      ? playActivities.filter((a) => favorites.includes(a.id))
-      : months === null
-        ? []
-        : eligible;
-  async function toggleFavorite(id: string) {
+    mode === "choose"
+      ? activitiesForBand(months)
+      : playActivities.filter((a) => selectedIds.includes(a.id));
+  function requestSelection(id: string) {
+    if (!ready || lock.current) return;
+    const a = playActivities.find((v) => v.id === id)!;
+    if (
+      !selectedIds.includes(id) &&
+      (actualMonths === null || actualMonths < a.min || actualMonths >= a.max)
+    ) {
+      setPendingSelection(id);
+      return;
+    }
+    void updateSelection(id, !selectedIds.includes(id));
+  }
+  async function updateSelection(id: string, selected: boolean) {
     if (!ready || lock.current) return;
     lock.current = true;
     setSaving(true);
     try {
-      const next = favorites.includes(id)
-        ? favorites.filter((item) => item !== id)
-        : [...favorites, id];
-      await savePlayFavorites(next);
-      setFavorites(next);
+      const next = changePlaySelection(selection, id, selected);
+      await savePlaySelection(next);
+      setSelection(next);
+      setPendingSelection(null);
       setError(null);
     } catch {
       setError("save");
@@ -209,6 +232,82 @@ export default function PlayLearning({
   }
   return (
     <View style={{ gap: 16 }}>
+      <Modal
+        visible={!!pendingActivity}
+        transparent
+        animationType="none"
+        onRequestClose={() => {
+          if (!saving) setPendingSelection(null);
+        }}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.5)",
+            justifyContent: "center",
+            padding: 24,
+          }}
+        >
+          <ScrollView
+            style={{
+              flexGrow: 0,
+              maxHeight: "80%",
+              backgroundColor: c.card,
+              borderRadius: 20,
+            }}
+            contentContainerStyle={{ padding: 20, gap: 14 }}
+          >
+            <T raw style={{ fontSize: 18, fontWeight: "700" }}>
+              {text("确认活动选择", "Confirm activity selection")}
+            </T>
+            <T raw>{pendingActivity ? copy(pendingActivity.title) : ""}</T>
+            <T raw accessibilityRole="alert">
+              {actualMonths === null
+                ? text(
+                    "尚未设置有效的出生日期，无法判断是否适龄。",
+                    "No valid birth date is set, so age suitability cannot be checked.",
+                  )
+                : text(
+                    `宝宝实际满 ${actualMonths} 个月，这项活动不在当前参考月龄内。`,
+                    `Your baby is ${actualMonths} completed months old. This activity is outside the current reference age.`,
+                  )}
+            </T>
+            <T raw>
+              {pendingActivity
+                ? text(
+                    `活动参考月龄：满 ${pendingActivity.min} 月至未满 ${pendingActivity.max} 月。请根据宝宝实际能力选择；是否仍要加入？`,
+                    `Activity reference age: ${pendingActivity.min} to under ${pendingActivity.max} months. Consider your child's abilities. Add it anyway?`,
+                  )
+                : ""}
+            </T>
+            <T raw style={{ fontSize: 12, lineHeight: 19, color: c.muted }}>
+              {pendingActivity ? copy(pendingActivity.safety) : ""}
+            </T>
+            {error === "save" ? (
+              <T raw accessibilityRole="alert">
+                {text(
+                  "活动选择未保存，请重试。",
+                  "Selection was not saved. Please try again.",
+                )}
+              </T>
+            ) : null}
+            <Button
+              label={text("仍然加入", "Add anyway")}
+              disabled={saving}
+              onPress={() => {
+                if (pendingActivity)
+                  void updateSelection(pendingActivity.id, true);
+              }}
+            />
+            <Button
+              label={text("暂不加入", "Not now")}
+              secondary
+              disabled={saving}
+              onPress={() => setPendingSelection(null)}
+            />
+          </ScrollView>
+        </View>
+      </Modal>
       <View
         style={{
           borderLeftWidth: 3,
@@ -240,7 +339,7 @@ export default function PlayLearning({
               )}
         </T>
       </View>
-      {mode !== "care" ? (
+      {mode === "choose" ? (
         <View style={{ gap: 8 }}>
           <T raw style={{ fontSize: 13, color: c.muted }}>
             {manualMonths !== null
@@ -334,9 +433,9 @@ export default function PlayLearning({
           },
           { value: "care", icon: "☀", label: text("日常照护", "Daily care") },
           {
-            value: "favorites",
-            icon: "☆",
-            label: text("我的收藏", "Favorites"),
+            value: "choose",
+            icon: "☑",
+            label: text("选择活动", "Choose activities"),
           },
         ]}
       />
@@ -355,13 +454,13 @@ export default function PlayLearning({
               <T raw accessibilityRole="alert" style={{ color: c.primary }}>
                 {error === "load"
                   ? text(
-                      "收藏暂时无法读取，原数据未覆盖。",
-                      "Favorites could not be loaded; existing data was not changed.",
+                      "活动选择无法读取，原数据未覆盖。",
+                      "Activity selections could not be loaded; existing data was not changed.",
                     )
                   : error === "save"
                     ? text(
-                        "收藏未保存，请重试。",
-                        "Favorite was not saved. Please try again.",
+                        "活动选择未保存，请重试。",
+                        "Selection was not saved. Please try again.",
                       )
                     : text(
                         "无法打开参考链接，请联网后重试。",
@@ -374,20 +473,28 @@ export default function PlayLearning({
                   onPress={() => setRetry((v) => v + 1)}
                   style={{ minHeight: 44, justifyContent: "center" }}
                 >
-                  <T raw>{text("重新读取收藏", "Reload favorites")}</T>
+                  <T raw>{text("重新读取活动选择", "Reload selections")}</T>
                 </Pressable>
               ) : null}
             </View>
           ) : null}
           <T raw style={{ color: c.muted, fontSize: 12 }}>
-            {day} ·{" "}
-            {checkinsReady
-              ? text(
-                  `今天做过 ${doneToday.length} 项，自在选择就好`,
-                  `${doneToday.length} checked in today. Choose freely.`,
-                )
-              : text("正在读取今日打卡…", "Loading today's check-ins…")}
+            {text(
+              `已选 ${selectedIds.length} 项。默认随实际月龄选择；手动增减会保留。`,
+              `${selectedIds.length} selected. Defaults follow actual age; manual choices are kept.`,
+            )}
           </T>
+          {mode === "today" ? (
+            <T raw style={{ color: c.muted, fontSize: 12 }}>
+              {day} ·{" "}
+              {checkinsReady
+                ? text(
+                    `今天做过 ${doneToday.length} 项，自在选择就好`,
+                    `${doneToday.length} checked in today. Choose freely.`,
+                  )
+                : text("正在读取今日打卡…", "Loading today's check-ins…")}
+            </T>
+          ) : null}
           {checkinError ? (
             <View>
               <T
@@ -418,7 +525,7 @@ export default function PlayLearning({
           ) : null}
           {shown.map((a) => {
             const open = expanded === a.id;
-            const saved = favorites.includes(a.id);
+            const saved = selectedIds.includes(a.id);
             const currentScene = scenes.find((s) => s.id === a.scene)!;
             const source = learningSources[a.source];
             return (
@@ -465,8 +572,9 @@ export default function PlayLearning({
                     {copy(a.focus)}
                   </T>
                 </Pressable>
-                {mode === "favorites" &&
-                (months === null || months < a.min || months >= a.max) ? (
+                {actualMonths === null ||
+                actualMonths < a.min ||
+                actualMonths >= a.max ? (
                   <T raw style={{ fontSize: 12, color: c.muted }}>
                     {text(
                       `参考月龄：满 ${a.min} 月至未满 ${a.max} 月，不是当前月龄推荐。`,
@@ -532,68 +640,70 @@ export default function PlayLearning({
                     gap: 8,
                   }}
                 >
-                  <Pressable
-                    accessibilityRole="checkbox"
-                    aria-checked={doneToday.includes(a.id)}
-                    accessibilityLabel={text(
-                      `今天做过：${a.title.zh}`,
-                      `Done today: ${a.title.en}`,
-                    )}
-                    accessibilityState={{
-                      checked: doneToday.includes(a.id),
-                      disabled: !checkinsReady || checking,
-                    }}
-                    disabled={!checkinsReady || checking}
-                    onPress={() => void toggleCheckin(a.id)}
-                    style={{
-                      minHeight: 44,
-                      justifyContent: "center",
-                      flexShrink: 1,
-                      opacity: checkinsReady && !checking ? 1 : 0.5,
-                    }}
-                  >
-                    <T
-                      raw
+                  {mode === "today" ? (
+                    <Pressable
+                      accessibilityRole="checkbox"
+                      aria-checked={doneToday.includes(a.id)}
+                      accessibilityLabel={text(
+                        `今天做过：${a.title.zh}`,
+                        `Done today: ${a.title.en}`,
+                      )}
+                      accessibilityState={{
+                        checked: doneToday.includes(a.id),
+                        disabled: !checkinsReady || checking,
+                      }}
+                      disabled={!checkinsReady || checking}
+                      onPress={() => void toggleCheckin(a.id)}
                       style={{
-                        color: c.primary,
-                        fontSize: 13,
-                        fontWeight: "600",
+                        minHeight: 44,
+                        justifyContent: "center",
+                        flexShrink: 1,
+                        opacity: checkinsReady && !checking ? 1 : 0.5,
                       }}
                     >
-                      {doneToday.includes(a.id) ? "☑ " : "□ "}
-                      {text(
-                        doneToday.includes(a.id) ? "今天已打卡" : "今天做过",
-                        doneToday.includes(a.id)
-                          ? "Checked in today"
-                          : "Done today",
-                      )}
-                    </T>
-                  </Pressable>
+                      <T
+                        raw
+                        style={{
+                          color: c.primary,
+                          fontSize: 13,
+                          fontWeight: "600",
+                        }}
+                      >
+                        {doneToday.includes(a.id) ? "☑ " : "□ "}
+                        {text(
+                          doneToday.includes(a.id) ? "今天已打卡" : "今天做过",
+                          doneToday.includes(a.id)
+                            ? "Checked in today"
+                            : "Done today",
+                        )}
+                      </T>
+                    </Pressable>
+                  ) : null}
                   <Pressable
-                    accessibilityRole="button"
+                    accessibilityRole="checkbox"
+                    aria-checked={saved}
                     accessibilityLabel={text(
-                      `${saved ? "取消收藏" : "收藏"}${a.title.zh}`,
-                      `${saved ? "Unfavorite" : "Favorite"} ${a.title.en}`,
+                      `选择活动：${a.title.zh}`,
+                      `Select activity: ${a.title.en}`,
                     )}
                     accessibilityState={{
-                      selected: saved,
+                      checked: saved,
                       disabled: !ready || saving,
                     }}
                     disabled={!ready || saving}
-                    onPress={() => void toggleFavorite(a.id)}
+                    onPress={() => requestSelection(a.id)}
                     style={{
                       minHeight: 44,
                       justifyContent: "center",
-                      alignSelf: "flex-start",
                       paddingHorizontal: 4,
                       opacity: ready && !saving ? 1 : 0.5,
                     }}
                   >
                     <T raw style={{ color: c.primary, fontSize: 13 }}>
-                      {saved ? "★ " : "☆ "}
+                      {saved ? "☑ " : "□ "}
                       {text(
-                        saved ? "已收藏" : "收藏点子",
-                        saved ? "Favorited" : "Keep this idea",
+                        saved ? "已选入清单" : "加入清单",
+                        saved ? "Selected" : "Add to list",
                       )}
                     </T>
                   </Pressable>
@@ -601,20 +711,13 @@ export default function PlayLearning({
               </Card>
             );
           })}
-          {!shown.length && (mode === "favorites" || months !== null) ? (
+          {!shown.length ? (
             <T raw style={{ color: c.muted }}>
-              {mode === "favorites"
-                ? text(
-                    ready
-                      ? "还没有收藏，遇到喜欢的点子就点星星。"
-                      : "正在读取收藏…",
-                    ready
-                      ? "No favorites yet. Tap a star on an idea you like."
-                      : "Loading favorites…",
-                  )
+              {!ready
+                ? text("正在读取活动选择…", "Loading activity selections…")
                 : text(
-                    "这个月龄暂没有此场景的点子，换个场景看看。",
-                    "No ideas for this setting at this age yet. Try another setting.",
+                    "活动清单还是空的，请到「选择活动」添加。未设置出生日期时不会自动选择。",
+                    "Your list is empty. Add items in Choose activities. No activities are selected automatically without a birth date.",
                   )}
             </T>
           ) : null}
@@ -627,8 +730,8 @@ export default function PlayLearning({
             </T>
             <T raw style={{ fontSize: 11, lineHeight: 18, color: c.muted }}>
               {text(
-                "活动由参考资料整理改写，时长和分组为浏览建议，未作临床验证。打卡仅表示今天做过，不代表完成建议活动量。收藏和打卡按本机日期保存在本机，不包含在记录备份中。",
-                "Activities are editorial adaptations; times and age groups are browsing suggestions, not clinically validated guidance. A check-in means you tried it today, not that a recommended activity amount was met. Favorites and dated check-ins stay locally and are not included in record backups.",
+                "活动由参考资料整理改写，时长和分组为浏览建议，未作临床验证。打卡仅表示今天做过，不代表完成建议活动量。活动选择和每日打卡仅保存在本机，不包含在记录备份中。",
+                "Activities are editorial adaptations; times and age groups are browsing suggestions, not clinically validated guidance. A check-in means you tried it today, not that a recommended activity amount was met. Activity selections and dated check-ins stay locally and are not included in record backups.",
               )}
             </T>
             <Pressable
