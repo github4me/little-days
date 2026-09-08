@@ -93,7 +93,7 @@ await page.evaluate(() => {
     e("f1", a, 100, 11),
     e("f2", b, 150, 10),
     e("f3", old, 120, 5),
-    ...[80, 90, 100, 110].map((amount, index) => {
+    ...[80, 90, 100, 110, 130].map((amount, index) => {
       const start = new Date(old);
       start.setDate(start.getDate() - (index + 1));
       return e(`f${index + 4}`, start, amount, 8);
@@ -171,6 +171,18 @@ for (const label of [
   );
 assert.equal(await page.getByRole("textbox").count(), 0);
 await page.getByText("2 次喂奶 · 250 mL · 21分钟", { exact: true }).waitFor();
+assert.equal(
+  await page.getByRole("button", { name: "编辑喂奶", exact: true }).count(),
+  0,
+);
+assert.equal(
+  await page.getByRole("button", { name: "展开当日明细", exact: true }).count(),
+  6,
+);
+await page
+  .getByRole("button", { name: "展开当日明细", exact: true })
+  .first()
+  .click();
 await page.getByText("距上次 3小时1分", { exact: true }).waitFor();
 await page
   .getByRole("button", { name: "显示 1 天历史记录", exact: true })
@@ -229,6 +241,10 @@ await page
   .getByText("1 次更换 · 有尿 1 次 · 有便 1 次", { exact: true })
   .waitFor();
 await page.evaluate(() => window.scrollTo(0, 0));
+await page
+  .getByRole("button", { name: "展开当日明细", exact: true })
+  .first()
+  .click();
 await page.getByRole("button", { name: "编辑尿布", exact: true }).click();
 const diaperOptions = await Promise.all(
   ["有尿", "有便", "尿 + 便"].map((name) =>
@@ -275,7 +291,7 @@ assert.equal(
       JSON.parse(localStorage.getItem("little-days-v1")),
     )
   ).entries.length,
-  16,
+  17,
 );
 await page.getByRole("tab", { name: "我的", exact: true }).click();
 assert.equal(await page.getByLabel("宝宝名字", { exact: true }).count(), 0);
@@ -409,6 +425,21 @@ await page
 await page
   .getByRole("button", { name: "Hide earlier days", exact: true })
   .waitFor();
+assert.equal(
+  await page
+    .getByRole("button", { name: "Show day details", exact: true })
+    .count(),
+  7,
+);
+assert.equal(
+  await page.getByRole("button", { name: "Edit Feed", exact: true }).count(),
+  0,
+);
+await page
+  .getByRole("button", { name: "Show day details", exact: true })
+  .last()
+  .click();
+await page.getByRole("button", { name: "Edit Feed", exact: true }).waitFor();
 await assertNoUntranslatedChinese("Records");
 await page.getByRole("button", { name: "Diaper", exact: true }).click();
 await page.getByText("1 changes · 1 pee · 1 poo", { exact: true }).waitFor();
@@ -483,6 +514,12 @@ const finishedFeed = await page.evaluate(
 assert.equal(finishedFeed.feedRunning, undefined);
 assert.equal(finishedFeed.start, runningFeed.start);
 assert.ok(Date.parse(finishedFeed.end) >= Date.parse(finishedFeed.start));
+await page.getByRole("tab", { name: "记录", exact: true }).click();
+await page.getByRole("button", { name: "编辑喂奶", exact: true }).waitFor();
+assert.equal(
+  await page.getByRole("button", { name: "编辑喂奶", exact: true }).count(),
+  1,
+);
 assert.deepEqual(errors, []);
 console.log(
   "PASS: clean home, removed controls/milestones, daily chart summaries and intervals, unit switch, edit/delete/undo, growth, old data retained, dark mode, narrow layout.",

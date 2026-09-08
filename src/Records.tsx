@@ -116,6 +116,7 @@ export default function Records({
     [kind, setKind] = useState<Kind>("feed"),
     [unit, setUnit] = useState("mL"),
     [historyExpanded, setHistoryExpanded] = useState(false),
+    [expandedDays, setExpandedDays] = useState<Set<string>>(() => new Set()),
     [expandedDayEntries, setExpandedDayEntries] = useState<Set<string>>(
       () => new Set(),
     );
@@ -170,7 +171,10 @@ export default function Records({
   const days = [...groups.values()].sort(
     (a, b) => b.date.getTime() - a.date.getTime(),
   );
-  const recentDays = days.slice(0, 5);
+  const today = dayKey(new Date(now));
+  const weekStart = midnight(new Date(now));
+  weekStart.setDate(weekStart.getDate() - 6);
+  const recentDays = days.filter((day) => day.date >= weekStart);
   const olderDayCount = days.length - recentDays.length;
   const visibleDays = historyExpanded ? days : recentDays;
   const perDay = (date: Date, events: Entry[]) => {
@@ -220,6 +224,7 @@ export default function Records({
         onChange={(v) => {
           setKind(v as Kind);
           setHistoryExpanded(false);
+          setExpandedDays(new Set());
           setExpandedDayEntries(new Set());
         }}
       />
@@ -276,6 +281,7 @@ export default function Records({
       {visibleDays.map(({ date, events }) => {
         const { s } = perDay(date, events);
         const key = dayKey(date);
+        const detailsExpanded = key === today || expandedDays.has(key);
         const dayEntriesExpanded = expandedDayEntries.has(key);
         const recentEvents = events.slice(0, 5);
         const olderEventCount = events.length - recentEvents.length;
@@ -300,251 +306,296 @@ export default function Records({
               </T>
             </T>
             <Card style={{ padding: 16, gap: 8 }}>
-              <T style={{ fontSize: 16, color: c.muted }}>
-                {kind === "feed"
-                  ? t("{count} 次喂奶 · {amount} mL · {duration}", {
-                      count: events.length,
-                      amount: s.feedMl,
-                      duration: elapsed(minutes * 60000),
-                    })
-                  : kind === "sleep"
-                    ? t("{count} 段睡眠 · {duration}", {
+              <Pressable
+                disabled={key === today}
+                accessibilityRole="button"
+                accessibilityLabel={t(
+                  detailsExpanded ? "收起当日明细" : "展开当日明细",
+                )}
+                accessibilityState={{ expanded: detailsExpanded }}
+                onPress={() =>
+                  setExpandedDays((current) => {
+                    const next = new Set(current);
+                    if (next.has(key)) next.delete(key);
+                    else next.add(key);
+                    return next;
+                  })
+                }
+                style={{
+                  minHeight: 36,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <T style={{ fontSize: 16, color: c.muted, flex: 1 }}>
+                  {kind === "feed"
+                    ? t("{count} 次喂奶 · {amount} mL · {duration}", {
                         count: events.length,
-                        duration: elapsed(s.sleepMinutes * 60000),
+                        amount: s.feedMl,
+                        duration: elapsed(minutes * 60000),
                       })
-                    : t("{count} 次更换 · 有尿 {wet} 次 · 有便 {dirty} 次", {
-                        count: s.diaperCount,
-                        wet: s.wetCount,
-                        dirty: s.dirtyCount,
-                      })}
-              </T>
-              <Bars
-                values
-                unit={displayUnit}
-                bars={events.map((e) => {
-                  const start = Math.max(date.getTime(), Date.parse(e.start)),
-                    d = new Date(start);
-                  return {
-                    x: d.getHours() + d.getMinutes() / 60,
-                    value:
-                      kind === "sleep"
-                        ? Math.max(
-                            0,
-                            Math.min(
-                              dayEnd.getTime(),
-                              Date.parse(e.end ?? new Date(now).toISOString()),
-                            ) - start,
-                          ) / 3600000
-                        : value(e),
-                    color: color(e),
-                    label:
-                      kind === "feed" && unit === "mL"
-                        ? String(e.amount ?? t("亲喂"))
-                        : undefined,
-                  };
-                })}
-                labels={[0, 6, 12, 18, 24].map((x) => ({
-                  x,
-                  text: String(x).padStart(2, "0"),
-                }))}
-              />
-              {visibleEvents.map((e) => {
-                const index = selected.findIndex((v) => v.id === e.id),
-                  prev = selected[index + 1];
-                return (
-                  <View
-                    key={e.id}
-                    style={{
-                      borderTopWidth: 1,
-                      borderColor: c.line,
-                      paddingVertical: 7,
-                      gap: 2,
-                    }}
-                  >
-                    <View style={row}>
-                      <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
-                        <View style={row}>
-                          <T
-                            style={{
-                              fontSize: 13,
-                              lineHeight: 19,
-                              fontWeight: "600",
-                            }}
-                          >
-                            {clock(e.start)}
-                            {kind === "sleep"
-                              ? `–${e.end ? clock(e.end) : t("正在睡")}`
-                              : ""}
-                          </T>
-                          <T style={{ fontSize: 13, lineHeight: 19 }}>
-                            {kind === "feed"
-                              ? e.amount !== undefined
-                                ? `${e.amount} mL`
-                                : t("亲喂")
-                              : kind === "diaper"
-                                ? t(
-                                    { wet: "尿", dirty: "便", mixed: "尿＋便" }[
-                                      e.diaperKind!
-                                    ],
-                                  )
-                                : elapsed(
-                                    Date.parse(
-                                      e.end ?? new Date(now).toISOString(),
-                                    ) - Date.parse(e.start),
-                                  )}
-                          </T>
-                          {kind === "feed" ? (
-                            <T
-                              style={{
-                                color: c.muted,
-                                fontSize: 11,
-                                lineHeight: 16,
-                              }}
-                            >
-                              {e.end
-                                ? elapsed(
-                                    Date.parse(e.end) - Date.parse(e.start),
-                                  )
-                                : t("未记时长")}
-                            </T>
-                          ) : null}
-                        </View>
-                        {kind === "feed" ? (
-                          <T
-                            style={{
-                              fontSize: 11,
-                              lineHeight: 16,
-                              color: c.muted,
-                            }}
-                          >
-                            {t("距上次 {duration}", {
-                              duration: prev
-                                ? elapsed(
-                                    Date.parse(e.start) -
-                                      Date.parse(prev.start),
-                                  )
-                                : "—",
-                            })}
-                          </T>
-                        ) : null}
-                        {kind === "sleep" &&
-                        dayKey(new Date(e.start)) !== dayKey(date) ? (
-                          <T
-                            style={{
-                              fontSize: 11,
-                              lineHeight: 16,
-                              color: c.muted,
-                            }}
-                          >
-                            {t("开始于 {date}；本日时长见汇总", {
-                              date: dayKey(new Date(e.start)),
-                            })}
-                          </T>
-                        ) : null}
-                        {e.note ? (
-                          <T
-                            numberOfLines={1}
-                            style={{
-                              fontSize: 11,
-                              lineHeight: 16,
-                              color: c.muted,
-                            }}
-                          >
-                            {e.note}
-                          </T>
-                        ) : null}
-                      </View>
+                    : kind === "sleep"
+                      ? t("{count} 段睡眠 · {duration}", {
+                          count: events.length,
+                          duration: elapsed(s.sleepMinutes * 60000),
+                        })
+                      : t("{count} 次更换 · 有尿 {wet} 次 · 有便 {dirty} 次", {
+                          count: s.diaperCount,
+                          wet: s.wetCount,
+                          dirty: s.dirtyCount,
+                        })}
+                </T>
+                {key !== today ? (
+                  <T style={{ color: c.primary }}>
+                    {detailsExpanded ? "▴" : "▾"}
+                  </T>
+                ) : null}
+              </Pressable>
+              {detailsExpanded ? (
+                <>
+                  <Bars
+                    values
+                    unit={displayUnit}
+                    bars={events.map((e) => {
+                      const start = Math.max(
+                          date.getTime(),
+                          Date.parse(e.start),
+                        ),
+                        d = new Date(start);
+                      return {
+                        x: d.getHours() + d.getMinutes() / 60,
+                        value:
+                          kind === "sleep"
+                            ? Math.max(
+                                0,
+                                Math.min(
+                                  dayEnd.getTime(),
+                                  Date.parse(
+                                    e.end ?? new Date(now).toISOString(),
+                                  ),
+                                ) - start,
+                              ) / 3600000
+                            : value(e),
+                        color: color(e),
+                        label:
+                          kind === "feed" && unit === "mL"
+                            ? String(e.amount ?? t("亲喂"))
+                            : undefined,
+                      };
+                    })}
+                    labels={[0, 6, 12, 18, 24].map((x) => ({
+                      x,
+                      text: String(x).padStart(2, "0"),
+                    }))}
+                  />
+                  {visibleEvents.map((e) => {
+                    const index = selected.findIndex((v) => v.id === e.id),
+                      prev = selected[index + 1];
+                    return (
                       <View
+                        key={e.id}
                         style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          gap: 3,
+                          borderTopWidth: 1,
+                          borderColor: c.line,
+                          paddingVertical: 7,
+                          gap: 2,
                         }}
                       >
-                        <Pressable
-                          accessibilityRole="button"
-                          accessibilityLabel={t("编辑{kind}", {
-                            kind: t(
-                              kind === "feed"
-                                ? "喂奶"
-                                : kind === "sleep"
-                                  ? "睡眠"
-                                  : "尿布",
-                            ),
-                          })}
-                          onPress={() => onEdit(e)}
-                          style={{
-                            minHeight: 36,
-                            justifyContent: "center",
-                            paddingHorizontal: 3,
-                          }}
-                        >
-                          <T style={{ fontSize: 11, color: c.primary }}>编辑</T>
-                        </Pressable>
-                        <Pressable
-                          accessibilityRole="button"
-                          accessibilityLabel={t("删除{kind}", {
-                            kind: t(
-                              kind === "feed"
-                                ? "喂奶"
-                                : kind === "sleep"
-                                  ? "睡眠"
-                                  : "尿布",
-                            ),
-                          })}
-                          onPress={() => onDelete(e)}
-                          style={{
-                            minHeight: 36,
-                            justifyContent: "center",
-                            paddingHorizontal: 3,
-                          }}
-                        >
-                          <T style={{ fontSize: 11, color: c.muted }}>删除</T>
-                        </Pressable>
+                        <View style={row}>
+                          <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
+                            <View style={row}>
+                              <T
+                                style={{
+                                  fontSize: 13,
+                                  lineHeight: 19,
+                                  fontWeight: "600",
+                                }}
+                              >
+                                {clock(e.start)}
+                                {kind === "sleep"
+                                  ? `–${e.end ? clock(e.end) : t("正在睡")}`
+                                  : ""}
+                              </T>
+                              <T style={{ fontSize: 13, lineHeight: 19 }}>
+                                {kind === "feed"
+                                  ? e.amount !== undefined
+                                    ? `${e.amount} mL`
+                                    : t("亲喂")
+                                  : kind === "diaper"
+                                    ? t(
+                                        {
+                                          wet: "尿",
+                                          dirty: "便",
+                                          mixed: "尿＋便",
+                                        }[e.diaperKind!],
+                                      )
+                                    : elapsed(
+                                        Date.parse(
+                                          e.end ?? new Date(now).toISOString(),
+                                        ) - Date.parse(e.start),
+                                      )}
+                              </T>
+                              {kind === "feed" ? (
+                                <T
+                                  style={{
+                                    color: c.muted,
+                                    fontSize: 11,
+                                    lineHeight: 16,
+                                  }}
+                                >
+                                  {e.end
+                                    ? elapsed(
+                                        Date.parse(e.end) - Date.parse(e.start),
+                                      )
+                                    : t("未记时长")}
+                                </T>
+                              ) : null}
+                            </View>
+                            {kind === "feed" ? (
+                              <T
+                                style={{
+                                  fontSize: 11,
+                                  lineHeight: 16,
+                                  color: c.muted,
+                                }}
+                              >
+                                {t("距上次 {duration}", {
+                                  duration: prev
+                                    ? elapsed(
+                                        Date.parse(e.start) -
+                                          Date.parse(prev.start),
+                                      )
+                                    : "—",
+                                })}
+                              </T>
+                            ) : null}
+                            {kind === "sleep" &&
+                            dayKey(new Date(e.start)) !== dayKey(date) ? (
+                              <T
+                                style={{
+                                  fontSize: 11,
+                                  lineHeight: 16,
+                                  color: c.muted,
+                                }}
+                              >
+                                {t("开始于 {date}；本日时长见汇总", {
+                                  date: dayKey(new Date(e.start)),
+                                })}
+                              </T>
+                            ) : null}
+                            {e.note ? (
+                              <T
+                                numberOfLines={1}
+                                style={{
+                                  fontSize: 11,
+                                  lineHeight: 16,
+                                  color: c.muted,
+                                }}
+                              >
+                                {e.note}
+                              </T>
+                            ) : null}
+                          </View>
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 3,
+                            }}
+                          >
+                            <Pressable
+                              accessibilityRole="button"
+                              accessibilityLabel={t("编辑{kind}", {
+                                kind: t(
+                                  kind === "feed"
+                                    ? "喂奶"
+                                    : kind === "sleep"
+                                      ? "睡眠"
+                                      : "尿布",
+                                ),
+                              })}
+                              onPress={() => onEdit(e)}
+                              style={{
+                                minHeight: 36,
+                                justifyContent: "center",
+                                paddingHorizontal: 3,
+                              }}
+                            >
+                              <T style={{ fontSize: 11, color: c.primary }}>
+                                编辑
+                              </T>
+                            </Pressable>
+                            <Pressable
+                              accessibilityRole="button"
+                              accessibilityLabel={t("删除{kind}", {
+                                kind: t(
+                                  kind === "feed"
+                                    ? "喂奶"
+                                    : kind === "sleep"
+                                      ? "睡眠"
+                                      : "尿布",
+                                ),
+                              })}
+                              onPress={() => onDelete(e)}
+                              style={{
+                                minHeight: 36,
+                                justifyContent: "center",
+                                paddingHorizontal: 3,
+                              }}
+                            >
+                              <T style={{ fontSize: 11, color: c.muted }}>
+                                删除
+                              </T>
+                            </Pressable>
+                          </View>
+                        </View>
                       </View>
-                    </View>
-                  </View>
-                );
-              })}
-              {olderEventCount > 0 ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={
-                    dayEntriesExpanded
-                      ? t("收起当天较早记录")
-                      : t("显示 {count} 条更早记录", { count: olderEventCount })
-                  }
-                  accessibilityState={{ expanded: dayEntriesExpanded }}
-                  onPress={() =>
-                    setExpandedDayEntries((current) => {
-                      const next = new Set(current);
-                      if (next.has(key)) next.delete(key);
-                      else next.add(key);
-                      return next;
-                    })
-                  }
-                  style={({ pressed }) => ({
-                    alignSelf: "flex-start",
-                    minHeight: 36,
-                    paddingHorizontal: 8,
-                    justifyContent: "center",
-                    opacity: pressed ? 0.72 : 1,
+                    );
                   })}
-                >
-                  <T
-                    style={{
-                      color: c.primary,
-                      fontSize: 12,
-                      fontWeight: "700",
-                    }}
-                  >
-                    {dayEntriesExpanded
-                      ? t("收起当天较早记录")
-                      : t("显示 {count} 条更早记录", {
-                          count: olderEventCount,
-                        })}
-                  </T>
-                </Pressable>
+                  {olderEventCount > 0 ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={
+                        dayEntriesExpanded
+                          ? t("收起当天较早记录")
+                          : t("显示 {count} 条更早记录", {
+                              count: olderEventCount,
+                            })
+                      }
+                      accessibilityState={{ expanded: dayEntriesExpanded }}
+                      onPress={() =>
+                        setExpandedDayEntries((current) => {
+                          const next = new Set(current);
+                          if (next.has(key)) next.delete(key);
+                          else next.add(key);
+                          return next;
+                        })
+                      }
+                      style={({ pressed }) => ({
+                        alignSelf: "flex-start",
+                        minHeight: 36,
+                        paddingHorizontal: 8,
+                        justifyContent: "center",
+                        opacity: pressed ? 0.72 : 1,
+                      })}
+                    >
+                      <T
+                        style={{
+                          color: c.primary,
+                          fontSize: 12,
+                          fontWeight: "700",
+                        }}
+                      >
+                        {dayEntriesExpanded
+                          ? t("收起当天较早记录")
+                          : t("显示 {count} 条更早记录", {
+                              count: olderEventCount,
+                            })}
+                      </T>
+                    </Pressable>
+                  ) : null}
+                </>
               ) : null}
             </Card>
           </View>
