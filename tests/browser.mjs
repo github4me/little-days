@@ -266,6 +266,21 @@ await page.screenshot({
 });
 await page.getByLabel("关闭记录编辑", { exact: true }).click();
 await page.getByRole("button", { name: "删除尿布", exact: true }).click();
+const deleteConfirmation = await page
+  .getByRole("button", { name: "确认删除", exact: true })
+  .boundingBox();
+assert.ok(
+  deleteConfirmation &&
+    deleteConfirmation.y >= 0 &&
+    deleteConfirmation.y + deleteConfirmation.height <= 844,
+  "delete confirmation must appear inside the viewport without scrolling",
+);
+await page.getByRole("button", { name: "取消", exact: true }).click();
+assert.equal(
+  await page.getByRole("button", { name: "删除尿布", exact: true }).count(),
+  1,
+);
+await page.getByRole("button", { name: "删除尿布", exact: true }).click();
 await page.getByRole("button", { name: "确认删除", exact: true }).click();
 await page.getByRole("button", { name: "撤销删除", exact: true }).click();
 await page
@@ -389,6 +404,34 @@ await page
   .getByRole("button", { name: "Hide earlier records", exact: true })
   .waitFor();
 await page.getByText("4.1 kg", { exact: false }).waitFor();
+await page
+  .getByRole("button", { name: "Delete Measure", exact: true })
+  .last()
+  .click();
+const growthDeleteConfirmation = await page
+  .getByRole("button", { name: "Delete record", exact: true })
+  .boundingBox();
+assert.ok(
+  growthDeleteConfirmation &&
+    growthDeleteConfirmation.y >= 0 &&
+    growthDeleteConfirmation.y + growthDeleteConfirmation.height <= 844,
+);
+await page.getByRole("button", { name: "Cancel", exact: true }).click();
+await page.getByText("4.1 kg", { exact: false }).waitFor();
+await page
+  .getByRole("button", { name: "Delete Measure", exact: true })
+  .last()
+  .click();
+await page.getByRole("button", { name: "Delete record", exact: true }).click();
+await page.getByText("4.1 kg", { exact: false }).waitFor({ state: "detached" });
+assert.equal(
+  await page.evaluate(() =>
+    JSON.parse(localStorage.getItem("little-days-v1")).entries.some(
+      (e) => e.id === "g6",
+    ),
+  ),
+  false,
+);
 const metricOptions = await Promise.all(
   ["All", "Weight", "Length", "Head"].map((name) =>
     page.getByRole("button", { name, exact: true }).boundingBox(),

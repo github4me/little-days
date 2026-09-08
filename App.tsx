@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   AppState,
   Image,
+  Modal,
   Platform,
   useWindowDimensions,
 } from "react-native";
@@ -487,38 +488,66 @@ function BabyApp({
               </Pressable>
             ) : null}
             {deleting ? (
-              <Card>
-                <T>
-                  {t("删除这条{kind}记录？", {
-                    kind: t(kinds[deleting.type].label),
-                  })}
-                </T>
-                <View style={row}>
-                  <Button
-                    label="取消"
-                    secondary
-                    onPress={() => setDeleting(null)}
-                  />
-                  <Button
-                    label="确认删除"
-                    disabled={busy}
-                    onPress={() =>
-                      void act(async () => {
-                        const e = deleting;
-                        await commit({
-                          ...stateRef.current!,
-                          entries: stateRef.current!.entries.filter(
-                            (x) => x.id !== e.id,
-                          ),
-                        });
-                        setUndo(e);
-                        setDeleting(null);
-                        setMessage("记录已删除，可撤销");
-                      })
-                    }
-                  />
+              <Modal
+                transparent
+                animationType="fade"
+                visible
+                onRequestClose={() => {
+                  if (!busy) setDeleting(null);
+                }}
+              >
+                <View
+                  style={{
+                    flex: 1,
+                    justifyContent: "center",
+                    padding: 24,
+                    backgroundColor: "rgba(0,0,0,0.45)",
+                  }}
+                >
+                  <View
+                    accessibilityViewIsModal
+                    style={{
+                      width: "100%",
+                      maxWidth: 420,
+                      alignSelf: "center",
+                    }}
+                  >
+                    <Card>
+                      <T>
+                        {t("删除这条{kind}记录？", {
+                          kind: t(kinds[deleting.type].label),
+                        })}
+                      </T>
+                      <View style={row}>
+                        <Button
+                          label="取消"
+                          secondary
+                          disabled={busy}
+                          onPress={() => setDeleting(null)}
+                        />
+                        <Button
+                          label="确认删除"
+                          disabled={busy}
+                          onPress={() =>
+                            void act(async () => {
+                              const e = deleting;
+                              await commit({
+                                ...stateRef.current!,
+                                entries: stateRef.current!.entries.filter(
+                                  (x) => x.id !== e.id,
+                                ),
+                              });
+                              setUndo(e);
+                              setDeleting(null);
+                              setMessage("记录已删除，可撤销");
+                            })
+                          }
+                        />
+                      </View>
+                    </Card>
+                  </View>
                 </View>
-              </Card>
+              </Modal>
             ) : null}
             {undo ? (
               <View style={row}>
