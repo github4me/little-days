@@ -29,6 +29,7 @@ import GrowthChart, { Metric } from "./src/GrowthChart";
 import Records from "./src/Records";
 import Settings from "./src/Settings";
 import PrivacySupport from "./src/PrivacySupport";
+import FeedStopButton from "./src/FeedStopButton";
 import { rescheduleAutoFeedReminders } from "./src/reminders";
 import {
   Theme,
@@ -318,6 +319,11 @@ function BabyApp({
     ? t("收起历史记录")
     : t("显示 {count} 条历史记录", { count: olderGrowthEntries.length });
   const active = entries.find((e) => e.type === "sleep" && !e.end);
+  const activeFeed = entries.find((e) => e.type === "feed" && e.feedRunning);
+  const feedSeconds = activeFeed
+    ? Math.floor(Math.max(0, now - Date.parse(activeFeed.start)) / 1000)
+    : 0;
+  const feedTimer = `${String(Math.floor(feedSeconds / 3600)).padStart(2, "0")}:${String(Math.floor(feedSeconds / 60) % 60).padStart(2, "0")}:${String(feedSeconds % 60).padStart(2, "0")}`;
   const today = new Date(now);
   today.setHours(0, 0, 0, 0);
   const tomorrow = new Date(today);
@@ -668,63 +674,90 @@ function BabyApp({
                         </View>
                         <View style={{ flex: 1 }}>
                           <T style={{ fontWeight: "700", fontSize: 17 }}>
-                            {type === "sleep" && active
-                              ? "正在睡觉"
-                              : kinds[type].label}
+                            {type === "feed" && activeFeed
+                              ? "正在喂养"
+                              : type === "sleep" && active
+                                ? "正在睡觉"
+                                : kinds[type].label}
                           </T>
                           <T style={{ fontSize: 12, color: c.muted }}>
-                            {type === "sleep" && active
-                              ? t("已睡 {duration}", {
-                                  duration: elapsed(
-                                    now - Date.parse(active.start),
-                                  ),
-                                })
-                              : last
-                                ? t("上次 {time} · {duration}前", {
-                                    time: time(
-                                      type === "sleep" ? last.end! : last.start,
-                                    ),
+                            {type === "feed" && activeFeed
+                              ? feedTimer
+                              : type === "sleep" && active
+                                ? t("已睡 {duration}", {
                                     duration: elapsed(
-                                      now -
-                                        Date.parse(
-                                          type === "sleep"
-                                            ? last.end!
-                                            : last.start,
-                                        ),
+                                      now - Date.parse(active.start),
                                     ),
                                   })
-                                : "还没有记录，轻点开始"}
+                                : last
+                                  ? t("上次 {time} · {duration}前", {
+                                      time: time(
+                                        type === "sleep"
+                                          ? last.end!
+                                          : last.start,
+                                      ),
+                                      duration: elapsed(
+                                        now -
+                                          Date.parse(
+                                            type === "sleep"
+                                              ? last.end!
+                                              : last.start,
+                                          ),
+                                      ),
+                                    })
+                                  : "还没有记录，轻点开始"}
                           </T>
                         </View>
-                        <Button
-                          label={
-                            type === "sleep"
-                              ? active
-                                ? "醒了"
-                                : "睡了"
-                              : "＋记录"
-                          }
-                          disabled={busy}
-                          secondary
-                          onPress={() => {
-                            if (type === "sleep")
+                        {type === "feed" && activeFeed ? (
+                          <FeedStopButton
+                            disabled={busy}
+                            onPress={() =>
                               void act(async () => {
-                                await upsert(
-                                  active
-                                    ? {
-                                        ...active,
-                                        end: new Date().toISOString(),
-                                      }
-                                    : newEntry("sleep"),
-                                );
-                              });
-                            else setEditor(newEntry(type));
-                          }}
-                        />
+                                const finished = {
+                                  ...activeFeed,
+                                  end: new Date(
+                                    Math.max(
+                                      Date.now(),
+                                      Date.parse(activeFeed.start),
+                                    ),
+                                  ).toISOString(),
+                                };
+                                delete finished.feedRunning;
+                                await upsert(finished);
+                              })
+                            }
+                          />
+                        ) : (
+                          <Button
+                            label={
+                              type === "sleep"
+                                ? active
+                                  ? "醒了"
+                                  : "睡了"
+                                : "＋记录"
+                            }
+                            disabled={busy}
+                            secondary
+                            onPress={() => {
+                              if (type === "sleep")
+                                void act(async () => {
+                                  await upsert(
+                                    active
+                                      ? {
+                                          ...active,
+                                          end: new Date().toISOString(),
+                                        }
+                                      : newEntry("sleep"),
+                                  );
+                                });
+                              else setEditor(newEntry(type));
+                            }}
+                          />
+                        )}
                       </View>
                       {type === "feed" && latestFeed ? (
                         <T style={{ color: c.muted, fontSize: 13 }}>
-                          {detail(latestFeed, now)}
+                          {detail(activeFeed ?? latestFeed, now)}
                         </T>
                       ) : null}
                       {type === "sleep" ? (

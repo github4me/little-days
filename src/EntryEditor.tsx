@@ -367,6 +367,8 @@ export default function EntryEditor({
       )
         throw new Error(t("请填写已经发生的时间"));
       if (entry.type === "feed") {
+        delete result.feedRunning;
+        if (!hasEnd) result.feedRunning = true;
         if (bottle) {
           if (!amount.trim()) throw new Error(t("请填写实际喝奶量"));
           result.amount = Number(amount);
@@ -591,9 +593,11 @@ export default function EntryEditor({
                 ) : (
                   <Text style={s.saveText}>
                     {t(
-                      entry.type === "sleep" && !hasEnd
-                        ? "保存 · 继续计时"
-                        : "保存记录",
+                      entry.type === "feed" && !hasEnd
+                        ? "开始"
+                        : entry.type === "sleep" && !hasEnd
+                          ? "保存 · 继续计时"
+                          : "保存记录",
                     )}
                   </Text>
                 )}

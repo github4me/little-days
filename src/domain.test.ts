@@ -16,6 +16,32 @@ const feed: Entry = {
   amount: 120,
   note: "",
 };
+test("feed timers persist without activating legacy records and reject conflicting states", () => {
+  const running = validateEntry({ ...feed, feedRunning: true });
+  assert.equal(validateEntry(feed).feedRunning, undefined);
+  assert.equal(
+    validateState(
+      JSON.parse(JSON.stringify({ ...initialState, entries: [running] })),
+    ).entries[0].feedRunning,
+    true,
+  );
+  assert.throws(() =>
+    validateEntry({ ...running, end: "2026-09-06T20:00:00+10:00" }),
+  );
+  assert.throws(() => validateEntry({ ...feed, feedRunning: "true" }));
+  assert.throws(() =>
+    validateState({
+      ...initialState,
+      entries: [running, { ...running, id: "second" }],
+    }),
+  );
+  const { feedRunning, ...finished } = running;
+  assert.equal(
+    validateEntry({ ...finished, end: "2026-09-06T20:00:00+10:00" })
+      .feedRunning,
+    undefined,
+  );
+});
 test("backup round-trip validates and returns detached data", () => {
   const state = {
     ...initialState,

@@ -455,6 +455,34 @@ assert.ok(
   ),
   "record type choices should stay on one row on a narrow phone",
 );
+await page.getByRole("tab", { name: "Today", exact: true }).click();
+await page.getByRole("button", { name: "+ Add", exact: true }).first().click();
+await page.getByRole("button", { name: "Start", exact: true }).click();
+await page.getByRole("button", { name: "Stop", exact: true }).waitFor();
+const runningFeed = await page.evaluate(() =>
+  JSON.parse(localStorage.getItem("little-days-v1")).entries.find(
+    (e) => e.feedRunning,
+  ),
+);
+assert.ok(runningFeed && !runningFeed.end);
+await page.reload();
+await page.getByRole("button", { name: "停止", exact: true }).waitFor();
+await page.getByText("正在喂养", { exact: true }).waitFor();
+await page.getByRole("button", { name: "停止", exact: true }).click();
+await page
+  .getByRole("button", { name: "＋记录", exact: true })
+  .first()
+  .waitFor();
+const finishedFeed = await page.evaluate(
+  (id) =>
+    JSON.parse(localStorage.getItem("little-days-v1")).entries.find(
+      (e) => e.id === id,
+    ),
+  runningFeed.id,
+);
+assert.equal(finishedFeed.feedRunning, undefined);
+assert.equal(finishedFeed.start, runningFeed.start);
+assert.ok(Date.parse(finishedFeed.end) >= Date.parse(finishedFeed.start));
 assert.deepEqual(errors, []);
 console.log(
   "PASS: clean home, removed controls/milestones, daily chart summaries and intervals, unit switch, edit/delete/undo, growth, old data retained, dark mode, narrow layout.",

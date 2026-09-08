@@ -4,6 +4,7 @@ export type Entry = {
   type: EntryType;
   start: string;
   end?: string;
+  feedRunning?: true;
   amount?: number;
   feedKind?:
     "formula" | "expressed" | "breast-left" | "breast-right" | "breast-both";
@@ -117,7 +118,11 @@ export function validateEntry(input: unknown): Entry {
     }
   }
   if (type === "feed") {
-    allowed.push("feedKind", "amount");
+    allowed.push("feedKind", "amount", "feedRunning");
+    if (e.feedRunning !== undefined) {
+      if (e.feedRunning !== true || out.end) return fail("喂养计时状态无效");
+      out.feedRunning = true;
+    }
     if (
       ![
         "formula",
@@ -175,6 +180,8 @@ export function validateState(input: unknown): State {
   if (!Array.isArray(s.entries) || s.entries.length > 100000)
     return fail("记录列表无效或过大");
   const entries = s.entries.map(validateEntry);
+  if (entries.filter((e) => e.feedRunning).length > 1)
+    return fail("请先停止正在进行的喂养");
   if (new Set(entries.map((e) => e.id)).size !== entries.length)
     return fail("备份包含重复记录编号");
   if (entries.filter((e) => e.type === "sleep" && !e.end).length > 1)
