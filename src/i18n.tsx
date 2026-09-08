@@ -17,6 +17,8 @@ const english: Record<string, string> = {
   今天: "Today",
   记录: "Records",
   成长: "Growth",
+  玩学: "Play",
+  亲子玩学: "Play together",
   喂奶: "Feed",
   喂养: "Feed",
   开始: "Start",

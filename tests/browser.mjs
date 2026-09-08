@@ -71,6 +71,14 @@ await page.route("http://little-days.test/**", async (route) => {
 
 await page.goto("http://little-days.test/");
 await page.getByText("宝宝的小日子", { exact: true }).waitFor();
+await page.getByRole("tab", { name: "玩学", exact: true }).click();
+await page
+  .getByText("还没有可用的出生日期，请先选月龄浏览。", { exact: true })
+  .waitFor();
+assert.equal(await page.getByRole("button", { name: /^查看/ }).count(), 0);
+await page.getByRole("button", { name: "0–2 个月", exact: true }).click();
+assert.equal(await page.getByRole("button", { name: /^查看/ }).count(), 2);
+await page.getByRole("tab", { name: "今天", exact: true }).click();
 assert.equal(await page.getByText("最近记录", { exact: true }).count(), 0);
 await page.evaluate(() => {
   const a = new Date();
@@ -577,6 +585,131 @@ assert.equal(
   await page.getByRole("button", { name: "编辑喂奶", exact: true }).count(),
   1,
 );
+await page.getByRole("tab", { name: "玩学", exact: true }).click();
+await page.getByText("亲子玩学", { exact: true }).waitFor();
+await page.getByRole("button", { name: "18–23 个月", exact: true }).click();
+await page.getByRole("button", { name: "生活场景", exact: true }).click();
+await page.getByRole("button", { name: "日常照护", exact: true }).click();
+await page
+  .getByRole("button", { name: "查看今天穿哪一件？", exact: true })
+  .click();
+await page
+  .getByText("不是测试，不反复催促；先满足保暖与舒适。", { exact: false })
+  .waitFor();
+await page
+  .getByRole("button", { name: "收藏今天穿哪一件？", exact: true })
+  .click();
+await page
+  .getByRole("button", { name: "取消收藏今天穿哪一件？", exact: true })
+  .waitFor();
+assert.deepEqual(
+  await page.evaluate(() =>
+    JSON.parse(localStorage.getItem("little-days-v1-play-favorites")),
+  ),
+  ["choose-shirt"],
+);
+await page.getByRole("tab", { name: "我的", exact: true }).click();
+await page.getByRole("button", { name: "English", exact: true }).click();
+await page.getByRole("tab", { name: "Play", exact: true }).click();
+await page.getByRole("button", { name: "18–23 months", exact: true }).click();
+await page.getByRole("button", { name: "By setting", exact: true }).click();
+for (const setting of ["Quiet", "Care", "Floor", "Outside"]) {
+  await page.getByRole("button", { name: setting, exact: true }).click();
+  const detailButtons = page.getByRole("button", { name: /^View / });
+  const count = await detailButtons.count();
+  for (let i = 0; i < count; i++) {
+    await page
+      .getByRole("button", { name: /^(View|Hide) / })
+      .nth(i)
+      .click();
+    await assertNoUntranslatedChinese(`Play ${setting}`);
+  }
+}
+const settingBoxes = await Promise.all(
+  ["Quiet", "Care", "Floor", "Outside"].map((name) =>
+    page.getByRole("button", { name, exact: true }).boundingBox(),
+  ),
+);
+assert.ok(
+  settingBoxes.every((box) => box && Math.abs(box.y - settingBoxes[0].y) < 1),
+);
+assert.equal(
+  await page.evaluate(
+    () => document.documentElement.scrollWidth <= window.innerWidth,
+  ),
+  true,
+);
+await page.getByRole("button", { name: "Today’s ideas", exact: true }).click();
+await page.screenshot({
+  path: path.join(process.env.TEMP ?? "docs", "little-days-play-dark.png"),
+});
+await page.reload();
+await page.getByRole("tab", { name: "玩学", exact: true }).click();
+await page.getByRole("button", { name: "我的收藏", exact: true }).click();
+await page
+  .getByRole("button", { name: "取消收藏今天穿哪一件？", exact: true })
+  .waitFor();
+await page
+  .getByText("参考月龄 18–23 个月，不是当前月龄推荐。", { exact: true })
+  .waitFor();
+await page
+  .getByRole("button", { name: "取消收藏今天穿哪一件？", exact: true })
+  .click();
+await page
+  .getByText("还没有收藏，遇到喜欢的点子就点星星。", { exact: true })
+  .waitFor();
+await page.getByRole("button", { name: "生活场景", exact: true }).click();
+await page.getByRole("button", { name: "0–2 个月", exact: true }).click();
+await page.getByRole("button", { name: "出门散步", exact: true }).click();
+await page
+  .getByText("这个月龄暂没有此场景的点子，换个场景看看。", { exact: true })
+  .waitFor();
+await page.evaluate(() => {
+  localStorage.setItem("little-days-v1-dark", "false");
+  localStorage.setItem("little-days-v1-play-favorites", "corrupt");
+});
+await page.reload();
+await page.getByRole("tab", { name: "玩学", exact: true }).click();
+await page
+  .getByText("收藏暂时无法读取，原数据未覆盖。", { exact: true })
+  .waitFor();
+assert.equal(
+  await page.evaluate(() =>
+    localStorage.getItem("little-days-v1-play-favorites"),
+  ),
+  "corrupt",
+);
+await page.evaluate(() =>
+  localStorage.removeItem("little-days-v1-play-favorites"),
+);
+await page.getByRole("button", { name: "重新读取收藏", exact: true }).click();
+await page.getByRole("button", { name: /^收藏/ }).first().waitFor();
+await page.getByRole("button", { name: /^查看/ }).first().click();
+await page.screenshot({
+  path: path.join(process.env.TEMP ?? "docs", "little-days-play-light.png"),
+});
+// A failed write must not claim success or replace the saved favorites.
+await page.evaluate(() => {
+  window.playTestSetItem = Storage.prototype.setItem;
+  Storage.prototype.setItem = function (key, value) {
+    if (key === "little-days-v1-play-favorites")
+      throw new Error("simulated storage failure");
+    return window.playTestSetItem.call(this, key, value);
+  };
+});
+await page.getByRole("button", { name: /^收藏/ }).first().click();
+await page.getByText("收藏未保存，请重试。", { exact: true }).waitFor();
+assert.equal(await page.getByRole("button", { name: /^取消收藏/ }).count(), 0);
+await page.evaluate(() => {
+  Storage.prototype.setItem = window.playTestSetItem;
+  delete window.playTestSetItem;
+});
+await context.setOffline(true);
+await page.getByRole("button", { name: /^收藏/ }).first().click();
+await page.getByRole("button", { name: /^取消收藏/ }).waitFor();
+await page.getByRole("button", { name: "我的收藏", exact: true }).click();
+await page.getByRole("button", { name: /^取消收藏/ }).waitFor();
+await context.setOffline(false);
 assert.deepEqual(errors, []);
 console.log(
   "PASS: clean home, removed controls/milestones, daily chart summaries and intervals, unit switch, confirmed deletion without undo, growth, old data retained, dark mode, narrow layout.",

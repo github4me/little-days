@@ -4,7 +4,17 @@ import {
   type ReminderSettings,
 } from "./reminderSettings";
 import type { LanguagePreference } from "./i18n";
+import { parsePlayFavorites } from "./learning";
 const KEY = "little-days-v1";
+export async function loadPlayFavorites(): Promise<string[]> {
+  return parsePlayFavorites(localStorage.getItem(KEY + "-play-favorites"));
+}
+export async function savePlayFavorites(ids: string[]): Promise<void> {
+  localStorage.setItem(
+    KEY + "-play-favorites",
+    JSON.stringify(parsePlayFavorites(JSON.stringify(ids))),
+  );
+}
 export async function loadState(): Promise<State> {
   const raw = localStorage.getItem(KEY);
   return raw ? validateState(JSON.parse(raw)) : structuredClone(initialState);

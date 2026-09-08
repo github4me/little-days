@@ -5,6 +5,7 @@ import {
   type ReminderSettings,
 } from "./reminderSettings";
 import type { LanguagePreference } from "./i18n";
+import { parsePlayFavorites } from "./learning";
 let database: ReturnType<typeof SQLite.openDatabaseAsync> | undefined;
 async function db() {
   if (!database)
@@ -67,6 +68,25 @@ export async function loadTheme(): Promise<boolean | null> {
     "dark",
   );
   return row ? row.value === "true" : null;
+}
+export async function loadPlayFavorites(): Promise<string[]> {
+  const row = await (
+    await db()
+  ).getFirstAsync<{ value: string }>(
+    "SELECT value FROM app_data WHERE key = ?",
+    "play-favorites",
+  );
+  return parsePlayFavorites(row?.value ?? null);
+}
+export async function savePlayFavorites(ids: string[]): Promise<void> {
+  const value = JSON.stringify(parsePlayFavorites(JSON.stringify(ids)));
+  await (
+    await db()
+  ).runAsync(
+    "INSERT OR REPLACE INTO app_data (key,value) VALUES (?,?)",
+    "play-favorites",
+    value,
+  );
 }
 export async function saveTheme(dark: boolean) {
   await (
