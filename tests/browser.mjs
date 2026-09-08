@@ -928,10 +928,57 @@ assert.equal(
   await page.getByRole("button", { name: "By setting", exact: true }).count(),
   0,
 );
+// The visible prefill must be a real editable value, saved without changing it.
+assert.equal(
+  await page
+    .getByRole("textbox", { name: "Temperature · °C", exact: true })
+    .inputValue(),
+  "36.8",
+);
+assert.equal(
+  await page.evaluate(
+    () =>
+      JSON.parse(localStorage.getItem("little-days-v1")).careRecords?.length ??
+      0,
+  ),
+  0,
+);
+await page
+  .getByRole("button", { name: "Save care record", exact: true })
+  .click();
+await page.getByText("Care record saved", { exact: true }).waitFor();
+assert.deepEqual(
+  await page.evaluate(() => {
+    const records = JSON.parse(
+      localStorage.getItem("little-days-v1"),
+    ).careRecords;
+    return [records.length, records[0].temperature, records[0].method];
+  }),
+  [1, 36.8, "armpit"],
+);
+assert.equal(
+  await page
+    .getByRole("textbox", { name: "Temperature · °C", exact: true })
+    .inputValue(),
+  "36.8",
+);
+await page
+  .getByRole("button", { name: "Edit care record", exact: true })
+  .click();
+// Explicitly clearing the input must not silently save the default again.
+await page
+  .getByRole("textbox", { name: "Temperature · °C", exact: true })
+  .fill("");
 await page
   .getByRole("button", { name: "Save care record", exact: true })
   .click();
 await page.getByText(/Check the date, time and reading/).waitFor();
+assert.equal(
+  await page
+    .getByRole("textbox", { name: "Temperature · °C", exact: true })
+    .inputValue(),
+  "",
+);
 await page
   .getByRole("textbox", { name: "Temperature · °C", exact: true })
   .pressSequentially("36.85");
@@ -957,7 +1004,15 @@ assert.equal(
       JSON.parse(localStorage.getItem("little-days-v1")).careRecords?.length ??
       0,
   ),
-  0,
+  1,
+);
+assert.equal(
+  await page.evaluate(
+    () =>
+      JSON.parse(localStorage.getItem("little-days-v1")).careRecords[0]
+        .temperature,
+  ),
+  36.8,
 );
 await page
   .getByRole("button", { name: "Save care record", exact: true })

@@ -8,6 +8,7 @@ import {
   careTime,
   temperatureMethods,
   defaultTemperatureMethod,
+  defaultTemperatureInput,
   parseTemperatureInput,
 } from "./care";
 import PlayIcon from "./PlayIcon";
@@ -31,7 +32,7 @@ export default function DailyCare({
   const copy = (w: LearningText) => (locale === "en-US" ? w.en : w.zh);
   const text = (zh: string, en: string) => (locale === "en-US" ? en : zh);
   const [kind, setKind] = useState<CareRecord["kind"]>("temperature");
-  const [temperature, setTemperature] = useState("");
+  const [temperature, setTemperature] = useState(defaultTemperatureInput);
   const [method, setMethod] = useState<CareRecord["method"]>(
     defaultTemperatureMethod,
   );
@@ -50,7 +51,7 @@ export default function DailyCare({
     .sort((a, b) => Date.parse(b.time) - Date.parse(a.time));
   const shown = expanded ? history : history.slice(0, 5);
   function reset() {
-    setTemperature("");
+    setTemperature(defaultTemperatureInput);
     setMethod(defaultTemperatureMethod);
     setNote("");
     setEditing(null);
@@ -212,12 +213,12 @@ export default function DailyCare({
               keyboardType="decimal-pad"
               inputMode="decimal"
               maxLength={8}
-              placeholder="36.8"
+              placeholder={text("请输入实际读数", "Enter the measured reading")}
             />
             <T raw style={{ fontSize: 12, color: c.muted }}>
               {text(
-                "输入实际读数，例如 36.8；支持小数点或逗号。",
-                "Enter the reading, e.g. 36.8. A decimal point or comma is accepted.",
+                "预填 36.8°C，并非测量结果，请按实际读数修改；支持小数点或逗号。",
+                "36.8°C is prefilled, not a measurement. Adjust to the actual reading; a decimal point or comma is accepted.",
               )}
             </T>
             <T raw style={{ fontSize: 12, color: c.muted }}>

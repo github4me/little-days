@@ -61,6 +61,8 @@ export const temperatureMethods = [
 ] as const;
 
 export const defaultTemperatureMethod = "armpit" as const;
+// An editable form default, not a measurement or a value inferred by the app.
+export const defaultTemperatureInput = "36.8";
 
 // Preserve the measured decimal; accept both common decimal separators and
 // full-width keyboard input. Never silently round or parse a numeric prefix.
