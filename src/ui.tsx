@@ -9,6 +9,7 @@ import {
   KeyboardTypeOptions,
 } from "react-native";
 import { useI18n } from "./i18n";
+import CareIcon from "./CareIcon";
 export const light = {
   bg: "#F4F9FD",
   card: "#FFFFFF",
@@ -172,7 +173,13 @@ export function Chips({
             borderColor: value === o.value ? c.primary : c.line,
           }}
         >
-          {iconized && o.icon ? (
+          {iconized && o.icon === "♧" ? (
+            <CareIcon
+              kind="diaper"
+              size={compact ? 20 : 24}
+              color={value === o.value ? c.primary : c.muted}
+            />
+          ) : iconized && o.icon ? (
             <T
               raw
               style={{

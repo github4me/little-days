@@ -31,6 +31,7 @@ import Records from "./src/Records";
 import Settings from "./src/Settings";
 import PrivacySupport from "./src/PrivacySupport";
 import FeedStopButton from "./src/FeedStopButton";
+import CareIcon from "./src/CareIcon";
 import { rescheduleAutoFeedReminders } from "./src/reminders";
 import {
   Theme,
@@ -366,9 +367,13 @@ function BabyApp({
               justifyContent: "center",
             }}
           >
-            <T style={{ color: "#3A5267", fontSize: 20 }}>
-              {kinds[e.type].icon}
-            </T>
+            {e.type === "feed" || e.type === "sleep" || e.type === "diaper" ? (
+              <CareIcon kind={e.type} size={22} color="#3A5267" />
+            ) : (
+              <T style={{ color: "#3A5267", fontSize: 20, lineHeight: 26 }}>
+                {kinds[e.type].icon}
+              </T>
+            )}
           </View>
           <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
             <T
@@ -678,9 +683,7 @@ function BabyApp({
                             justifyContent: "center",
                           }}
                         >
-                          <T style={{ fontSize: 26, color: "#3A5267" }}>
-                            {kinds[type].icon}
-                          </T>
+                          <CareIcon kind={type} color="#3A5267" />
                         </View>
                         <View style={{ flex: 1 }}>
                           <T style={{ fontWeight: "700", fontSize: 17 }}>
