@@ -2,6 +2,8 @@
 
 [English](README.en.md) | 简体中文
 
+代码仓库：[github4me/my-little-days](https://github.com/github4me/my-little-days)。仓库更名不影响现有应用身份、Expo 项目或本机记录。
+
 婴儿成长记录的单机离线版（Expo / React Native / TypeScript）。Windows PC 开发，iPhone 真机使用。不需要账号、后端或共享服务；仅在选择宝宝头像时请求相册访问。
 
 ## 已实现
@@ -18,9 +20,11 @@
 ## Windows 上启动
 
 1. 安装 Node.js LTS（建议 Node 24 LTS）、Git、VS Code。
-2. 解压本项目，在包含 `package.json` 的文件夹打开 PowerShell：
+2. 在 PowerShell 中克隆仓库并进入项目目录（如果已下载源码，直接在包含 `package.json` 的文件夹打开 PowerShell）：
 
 ```powershell
+git clone https://github.com/github4me/my-little-days.git
+cd my-little-days
 npm ci
 npm start
 ```
