@@ -1,5 +1,6 @@
 node_modules/
 .expo/
+.incoming-update/
 dist/
 dist-ios/
 dist-web/

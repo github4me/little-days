@@ -1,8 +1,0 @@
-node_modules/
-.expo/
-dist/
-dist-ios/
-dist-web/
-*.log
-.env*
-.DS_Store
