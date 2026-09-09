@@ -21,8 +21,8 @@ An offline baby-care and growth tracker built with Expo, React Native, and TypeS
 Use a Node.js version supported by `package.json` (`^22.13.0` or `>=24.3.0`).
 
 ```sh
-git clone https://github.com/github4me/little-days.git
-cd little-days
+git clone https://github.com/github4me/my-little-days.git
+cd my-little-days
 npm ci
 npm start
 ```
