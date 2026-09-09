@@ -1,4 +1,4 @@
-# Little Days · 小日子
+# My Little Days · 我的小日子
 
 English | [简体中文](README.md)
 
