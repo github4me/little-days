@@ -6,14 +6,17 @@ An offline baby-care and growth tracker built with Expo, React Native, and TypeS
 
 ## Features
 
-- **Baby profile:** name, birth date, sex, and an optional photo stored on the device.
-- **Feeding:** formula, expressed milk, and breastfeeding records; quick milk-volume choices and optional end times.
+- **Baby profile:** name, birth date, sex, and an optional photo stored on the device. Tap the Home avatar to open the profile settings.
+- **Feeding:** formula, expressed milk, and breastfeeding records; quick milk-volume choices and optional end times. Start a timer without an end time, then tap the animated Stop control on Home to save the session. When adding an end time to a past feed, it initially defaults to 20 minutes after the start and can be edited.
 - **Sleep:** start and stop a sleep session, add past sessions, and resume the timer display after reopening the app.
 - **Diapers:** pee, poo, and mixed changes.
 - **Growth:** weight, length, and head circumference, with bundled WHO reference curves for ages 0–24 months. View individual metrics or all three in different colors.
-- **History:** seven-day charts, daily summaries, editing, deletion, and undo. Growth lists show the latest five measurements by default. Care history shows the latest five recorded dates and up to five entries per day, with older records expandable.
+- **History:** select 7 days, 2 weeks, 1 month, 3 months, 6 months, or All. Charts and daily history follow the selected range; longer charts group days to stay readable. Today's details are expanded, earlier days are collapsed, and dates beyond the first seven recorded days can be expanded. Long daily lists and growth records show five entries initially. Editing and deletion are supported; deletion requires confirmation and has no undo.
+- **Care:** record temperature, baths, washing, oral care, and nail care with dates, times, notes, and editable history. Temperature supports decimals and defaults to armpit measurement. The prefilled 36.8°C is an editable input, not a measured result; always enter the actual reading. Older care history can be expanded.
+- **Early-learning activities:** parent-led play ideas with steps, safety notes, source links, and optional daily check-ins. Browse 0–1, 1–2, 2–3 months, then two-month groups up to under 25 months. Age-appropriate activities are selected by default when a valid birth date is set; otherwise nothing is selected. Manual choices are retained, and choosing outside the baby's calculated age range prompts a warning rather than blocking selection.
 - **Reminders:** one-time, daily, and feeding reminders rescheduled from the latest saved feed start time; configurable silent notifications.
-- **Preferences:** saved language and light/night theme choices.
+- **Preferences:** English, Simplified Chinese, or system language; Automatic, Light, and Dark themes. Automatic follows system appearance, while explicit choices are saved. Sections in More expand independently.
+- **Privacy and support:** in-app privacy information and support contact. Activity guidance is for parents, not a screen-based course for babies or a developmental assessment.
 - **Backups:** export and import validated JSON files. Imports replace the current records after confirmation rather than merging them.
 
 ## Run locally
@@ -63,7 +66,7 @@ Mobile records are stored locally in SQLite. The app does not provide accounts, 
 
 The app uses Expo's update service to check for and download software updates. This can exchange technical metadata with that service; baby records and photos are not included in the app's update requests.
 
-Backups are unencrypted JSON containing the baby profile and records. They do not include the local avatar, theme/language preferences, or reminder schedules. Export a backup before uninstalling or changing phones. Files leave the app when you explicitly export/share them; selecting a cloud destination uses the service you choose.
+Backups are unencrypted JSON containing the baby profile, tracking entries, and daily-care records. They do not include the local avatar, theme/language preferences, reminder schedules, or activity selections/check-ins. Export a backup before uninstalling or changing phones. Files leave the app when you explicitly export/share them; selecting a cloud destination uses the service you choose.
 
 ## Time and growth calculations
 
@@ -89,6 +92,9 @@ npm run test:browser
 - `src/EntryEditor.tsx` — record forms and date/time inputs.
 - `src/Settings.tsx` — profile, language, theme, reminders, and backups.
 - `src/PrivacySupport.tsx` — in-app privacy information and support contact.
+- `src/PlayLearning.tsx`, `src/learning.ts` — activity selection, age groups, and check-ins.
+- `src/DailyCare.tsx`, `src/care.ts` — care history and temperature input validation.
+- `src/recordRange.ts` — date ranges and chart grouping.
 - `src/domain.ts` — data validation and summary calculations.
 - `src/storage.ts`, `src/backup.ts`, `src/reminders.ts` — native persistence, backups, and notifications; `.web.ts` files provide browser variants.
 - `src/growth.ts`, `assets/who/` — bundled growth references.
