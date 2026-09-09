@@ -15,5 +15,8 @@
         "ascAppId": "6809826484"
       }
     }
+  },
+  "cli": {
+    "appVersionSource": "local"
   }
 }

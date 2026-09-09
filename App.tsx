@@ -9,6 +9,7 @@ import {
   Modal,
   Platform,
   useWindowDimensions,
+  useColorScheme,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -135,7 +136,9 @@ function BabyApp({
   onLanguageChange: (language: LanguagePreference) => Promise<void>;
 }) {
   const compactTitle = useWindowDimensions().width < 360;
-  const [darkMode, setDarkMode] = useState(false);
+  const systemTheme = useColorScheme();
+  const [themePreference, setThemePreference] = useState<boolean | null>(null);
+  const darkMode = themePreference ?? systemTheme === "dark";
   const c = darkMode ? dark : light;
   const [state, setState] = useState<State | null>(null),
     [avatarUri, setAvatarUri] = useState<string | null>(null),
@@ -153,6 +156,15 @@ function BabyApp({
   const [rescue, setRescue] = useState<State | null>(null);
   const [metric, setMetric] = useState<Metric>("weight");
   const [growthHistoryExpanded, setGrowthHistoryExpanded] = useState(false);
+  const [openProfile, setOpenProfile] = useState(false);
+  const mainScroll = useRef<ScrollView>(null);
+  function showProfile() {
+    setOpenProfile(true);
+    setSettingsPage("main");
+    setMessage("");
+    setTab("settings");
+    mainScroll.current?.scrollTo({ y: 0, animated: false });
+  }
   async function changeLanguage(next: LanguagePreference) {
     await onLanguageChange(next);
     if (stateRef.current) {
@@ -174,7 +186,7 @@ function BabyApp({
       setState(s);
       setAvatarUri(savedAvatarUri);
       setFatal("");
-      if (preference !== null) setDarkMode(preference);
+      setThemePreference(preference);
     } catch (e) {
       setFatal(
         `${t("无法读取本地数据，原数据没有被覆盖。")} ${(e as Error).message}`,
@@ -448,6 +460,7 @@ function BabyApp({
           style={{ flex: 1, width: "100%", maxWidth: 720, alignSelf: "center" }}
         >
           <ScrollView
+            ref={mainScroll}
             contentContainerStyle={{ padding: 20, gap: 20, paddingBottom: 28 }}
             keyboardShouldPersistTaps="handled"
           >
@@ -579,7 +592,7 @@ function BabyApp({
                       >
                         一点一滴，都是成长
                       </T>
-                      <Pressable onPress={() => setTab("settings")}>
+                      <Pressable onPress={showProfile}>
                         <T
                           style={{
                             color: c.heroMuted,
@@ -592,7 +605,10 @@ function BabyApp({
                         </T>
                       </Pressable>
                     </View>
-                    <View
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={t("打开宝宝档案")}
+                      onPress={showProfile}
                       style={{
                         width: 64,
                         height: 64,
@@ -622,7 +638,7 @@ function BabyApp({
                           ☘
                         </T>
                       )}
-                    </View>
+                    </Pressable>
                   </View>
                   <View style={{ height: 1, backgroundColor: c.heroLine }} />
                   <View style={row}>
@@ -959,23 +975,24 @@ function BabyApp({
                 <PrivacySupport onBack={() => setSettingsPage("main")} />
               ) : (
                 <Settings
+                  initialProfileExpanded={openProfile}
                   state={state}
                   avatarUri={avatarUri}
                   onAvatarChange={updateAvatar}
                   onCommit={async (next, recovery) => {
                     await commit(next, recovery);
                   }}
-                  darkMode={darkMode}
+                  themePreference={themePreference}
                   language={language}
                   onLanguageChange={changeLanguage}
                   onOpenPrivacy={() => setSettingsPage("privacy")}
                   onDarkMode={async (v) => {
-                    const previous = darkMode;
-                    setDarkMode(v);
+                    const previous = themePreference;
+                    setThemePreference(v);
                     try {
                       await saveTheme(v);
                     } catch (error) {
-                      setDarkMode(previous);
+                      setThemePreference(previous);
                       throw error;
                     }
                   }}
@@ -1017,6 +1034,7 @@ function BabyApp({
                   accessibilityLabel={t(label)}
                   key={key}
                   onPress={() => {
+                    setOpenProfile(false);
                     setTab(key);
                     setSettingsPage("main");
                     setMessage("");

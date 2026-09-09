@@ -1,9 +1,23 @@
 import React, { useContext, useState } from "react";
-import { View, Pressable } from "react-native";
+import { View, Pressable, ScrollView } from "react-native";
 import Svg, { Rect, Line, Text as Label } from "react-native-svg";
 import { Entry, summarize } from "./domain";
 import { Theme, T, Card, Chips, row } from "./ui";
 import { elapsed, formatDate, formatTime, t } from "./i18n";
+import {
+  recordRangeStart,
+  recordChartBuckets,
+  type RecordRange,
+} from "./recordRange";
+
+const ranges: { value: RecordRange; label: string; title: string }[] = [
+  { value: "7d", label: "7 天", title: "近 7 天" },
+  { value: "2w", label: "2 周", title: "近 2 周" },
+  { value: "1m", label: "1 个月", title: "近 1 个月" },
+  { value: "3m", label: "3 个月", title: "近 3 个月" },
+  { value: "6m", label: "6 个月", title: "近 6 个月" },
+  { value: "all", label: "全部", title: "全部记录" },
+];
 type Kind = "feed" | "diaper" | "sleep";
 const dayKey = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -115,6 +129,7 @@ export default function Records({
   const c = useContext(Theme),
     [kind, setKind] = useState<Kind>("feed"),
     [unit, setUnit] = useState("mL"),
+    [range, setRange] = useState<RecordRange>("7d"),
     [historyExpanded, setHistoryExpanded] = useState(false),
     [expandedDays, setExpandedDays] = useState<Set<string>>(() => new Set()),
     [expandedDayEntries, setExpandedDayEntries] = useState<Set<string>>(
@@ -172,11 +187,17 @@ export default function Records({
     (a, b) => b.date.getTime() - a.date.getTime(),
   );
   const today = dayKey(new Date(now));
-  const weekStart = midnight(new Date(now));
-  weekStart.setDate(weekStart.getDate() - 6);
-  const recentDays = days.filter((day) => day.date >= weekStart);
-  const olderDayCount = days.length - recentDays.length;
-  const visibleDays = historyExpanded ? days : recentDays;
+  const rangeStart = recordRangeStart(
+    range,
+    new Date(now),
+    days[days.length - 1]?.date,
+  );
+  const rangeDays = days.filter(
+    (day) => day.date >= rangeStart && day.date <= new Date(now),
+  );
+  const recentDays = rangeDays.slice(0, 7);
+  const olderDayCount = rangeDays.length - recentDays.length;
+  const visibleDays = historyExpanded ? rangeDays : recentDays;
   const perDay = (date: Date, events: Entry[]) => {
     const end = new Date(date);
     end.setDate(end.getDate() + 1);
@@ -198,11 +219,19 @@ export default function Records({
               : events.reduce((a, e) => a + value(e), 0),
     };
   };
-  const chartDays = Array.from({ length: 7 }, (_, i) => {
-    const d = midnight(new Date(now));
-    d.setDate(d.getDate() - 6 + i);
-    return { date: d, events: groups.get(dayKey(d))?.events ?? [] };
-  });
+  const { buckets: chartDays, daysPerBar } = recordChartBuckets(
+    rangeStart,
+    new Date(now),
+    (date) => perDay(date, groups.get(dayKey(date))?.events ?? []).total,
+  );
+  const chartLabelIndices = new Set(
+    Array.from({ length: Math.min(7, chartDays.length) }, (_, index) =>
+      Math.round(
+        (index * (chartDays.length - 1)) /
+          Math.max(1, Math.min(7, chartDays.length) - 1),
+      ),
+    ),
+  );
   const displayUnit =
     kind === "feed"
       ? unit === "mL"
@@ -229,8 +258,22 @@ export default function Records({
         }}
       />
       <Card>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <Chips
+            value={range}
+            options={ranges}
+            onChange={(next) => {
+              setRange(next as RecordRange);
+              setHistoryExpanded(false);
+              setExpandedDays(new Set());
+              setExpandedDayEntries(new Set());
+            }}
+          />
+        </ScrollView>
         <View style={row}>
-          <T style={{ fontSize: 18, fontWeight: "700" }}>近 7 天</T>
+          <T style={{ flex: 1, fontSize: 18, fontWeight: "700" }}>
+            {ranges.find((option) => option.value === range)!.title}
+          </T>
           {kind === "feed" ? (
             <Chips
               value={unit}
@@ -248,17 +291,33 @@ export default function Records({
         </View>
         <Bars
           unit={displayUnit}
-          maxX={7}
+          maxX={chartDays.length}
           bars={chartDays.map((d, i) => ({
             x: i + 0.5,
-            value: perDay(d.date, d.events).total,
+            value: d.total,
             color: kind === "sleep" ? colors[2] : colors[0],
           }))}
-          labels={chartDays.map((d, i) => ({
-            x: i + 0.5,
-            text: `${d.date.getMonth() + 1}/${d.date.getDate()}`,
-          }))}
+          labels={chartDays.flatMap((d, i) =>
+            chartLabelIndices.has(i)
+              ? [
+                  {
+                    x: i + 0.5,
+                    text: `${d.date.getMonth() + 1}/${d.date.getDate()}`,
+                  },
+                ]
+              : [],
+          )}
         />
+        <T style={{ fontSize: 12, color: c.muted }}>
+          {`${dayKey(rangeStart)} – ${today}`}
+        </T>
+        {daysPerBar > 1 ? (
+          <T style={{ fontSize: 12, color: c.muted }}>
+            {t("每根柱为最多 {count} 天合计；下方可展开每日明细。", {
+              count: daysPerBar,
+            })}
+          </T>
+        ) : null}
         <T style={{ fontSize: 12, color: c.muted }}>
           {kind === "feed"
             ? "● 瓶喂　● 亲喂只计时长，不估算奶量"
@@ -267,10 +326,10 @@ export default function Records({
               : "一次混合尿布按一次更换统计"}
         </T>
       </Card>
-      {!days.length ? (
+      {!rangeDays.length ? (
         <Card>
           <T style={{ color: c.muted }}>
-            {t("还没有{kind}记录", {
+            {t("所选时段没有{kind}记录", {
               kind: t(
                 kind === "feed" ? "喂奶" : kind === "sleep" ? "睡眠" : "尿布",
               ),

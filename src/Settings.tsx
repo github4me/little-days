@@ -27,23 +27,61 @@ const reminderKindLabels = {
   sleep: "睡眠",
 } as const;
 
+function SettingsSection({
+  title,
+  busy,
+  children,
+}: {
+  title: string;
+  busy: boolean;
+  children: React.ReactNode;
+}) {
+  const c = useContext(Theme);
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <Card>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t(expanded ? "收起{section}" : "展开{section}", {
+          section: t(title),
+        })}
+        accessibilityState={{ expanded, disabled: busy }}
+        aria-expanded={expanded}
+        disabled={busy}
+        onPress={() => setExpanded((value) => !value)}
+        style={({ pressed }) => [row, { opacity: pressed ? 0.7 : 1 }]}
+      >
+        <T style={{ flex: 1, minWidth: 0, fontSize: 18, fontWeight: "700" }}>
+          {title}
+        </T>
+        <T style={{ color: c.primary, fontSize: 13, flexShrink: 0 }}>
+          {expanded ? "收起　⌃" : "展开　⌄"}
+        </T>
+      </Pressable>
+      {expanded ? children : null}
+    </Card>
+  );
+}
+
 export default function Settings({
+  initialProfileExpanded = false,
   state,
   avatarUri,
   onAvatarChange,
   onCommit,
-  darkMode,
+  themePreference,
   onDarkMode,
   language,
   onLanguageChange,
   onOpenPrivacy,
 }: {
+  initialProfileExpanded?: boolean;
   state: State;
   avatarUri: string | null;
   onAvatarChange: (uri: string | null) => Promise<void>;
   onCommit: (next: State, recovery?: boolean) => Promise<void>;
-  darkMode: boolean;
-  onDarkMode: (v: boolean) => Promise<void>;
+  themePreference: boolean | null;
+  onDarkMode: (v: boolean | null) => Promise<void>;
   language: LanguagePreference;
   onLanguageChange: (language: LanguagePreference) => Promise<void>;
   onOpenPrivacy: () => void;
@@ -60,7 +98,9 @@ export default function Settings({
   const [pending, setPending] = useState<State | null>(null),
     [backupNotice, setBackupNotice] = useState("");
   const source = "备份文件";
-  const [profileExpanded, setProfileExpanded] = useState(false);
+  const [profileExpanded, setProfileExpanded] = useState(
+    initialProfileExpanded,
+  );
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [mode, setMode] = useState<ReminderMode>("once"),
     [minutes, setMinutes] = useState("120"),
@@ -167,7 +207,7 @@ export default function Settings({
       }
     });
   }
-  function changeTheme(nextDarkMode: boolean) {
+  function changeTheme(nextDarkMode: boolean | null) {
     void run(async () => {
       await onDarkMode(nextDarkMode);
       setMessage("主题已自动保存");
@@ -198,6 +238,8 @@ export default function Settings({
           accessibilityLabel={t(
             profileExpanded ? "收起宝宝档案" : "展开宝宝档案",
           )}
+          accessibilityState={{ expanded: profileExpanded }}
+          aria-expanded={profileExpanded}
           disabled={busy}
           onPress={() => setProfileExpanded((expanded) => !expanded)}
           style={({ pressed }) => [row, { opacity: pressed ? 0.7 : 1 }]}
@@ -349,8 +391,7 @@ export default function Settings({
           </>
         ) : null}
       </Card>
-      <Card>
-        <T style={{ fontSize: 18, fontWeight: "700" }}>语言</T>
+      <SettingsSection title="语言" busy={busy}>
         <T style={{ color: c.muted, fontSize: 13 }}>
           跟随系统语言，或在这里固定选择显示语言。
         </T>
@@ -430,26 +471,57 @@ export default function Settings({
             );
           })}
         </View>
-      </Card>
-      <Card>
-        <View style={[row, { alignItems: "center" }]}>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <T style={{ fontSize: 18, fontWeight: "700" }}>夜间模式</T>
-            <T style={{ color: c.muted, fontSize: 13 }}>柔和配色，夜里也舒适</T>
-          </View>
-          <View style={{ flexShrink: 0, alignItems: "flex-end" }}>
-            <Switch
-              accessibilityLabel={t("夜间模式")}
-              value={darkMode}
-              onValueChange={changeTheme}
+      </SettingsSection>
+      <SettingsSection title="主题" busy={busy}>
+        <View accessibilityRole="radiogroup" accessibilityLabel={t("主题")}>
+          {(
+            [
+              [null, "自动（跟随系统）", "◐"],
+              [false, "浅色", "☼"],
+              [true, "深色", "☾"],
+            ] as const
+          ).map(([value, label, icon], index) => (
+            <Pressable
+              key={label}
+              accessibilityRole="radio"
+              aria-checked={themePreference === value}
+              accessibilityLabel={t(label)}
+              accessibilityState={{
+                checked: themePreference === value,
+                disabled: busy,
+              }}
               disabled={busy}
-              trackColor={{ true: c.primary }}
-            />
-          </View>
+              onPress={() => changeTheme(value)}
+              style={[
+                row,
+                {
+                  minHeight: 52,
+                  paddingVertical: 10,
+                  borderTopWidth: index ? 1 : 0,
+                  borderTopColor: c.line,
+                },
+              ]}
+            >
+              <T style={{ fontSize: 25, width: 30, textAlign: "center" }}>
+                {icon}
+              </T>
+              <T style={{ flex: 1, fontSize: 17 }}>{label}</T>
+              <T
+                style={{
+                  color: themePreference === value ? c.primary : c.muted,
+                  fontSize: 23,
+                }}
+              >
+                {themePreference === value ? "✓" : "○"}
+              </T>
+            </Pressable>
+          ))}
         </View>
-      </Card>
-      <Card>
-        <T style={{ fontSize: 18, fontWeight: "700" }}>照护提醒</T>
+        <T style={{ color: c.muted, fontSize: 13 }}>
+          自动跟随设备的系统外观，选择后立即保存。
+        </T>
+      </SettingsSection>
+      <SettingsSection title="照护提醒" busy={busy}>
         <T style={{ color: c.muted, fontSize: 13 }}>
           {kind === "feed"
             ? "跟随模式会在每次保存喂奶后，按最新开始时间安排下一次提醒。"
@@ -715,9 +787,8 @@ export default function Settings({
             )}
           </>
         )}
-      </Card>
-      <Card>
-        <T style={{ fontSize: 18, fontWeight: "700" }}>备份与恢复</T>
+      </SettingsSection>
+      <SettingsSection title="备份与恢复" busy={busy}>
         <T style={{ color: c.muted, fontSize: 13 }}>
           记录保存在当前设备。换手机或卸载前，请导出备份并妥善保存。备份包含宝宝档案和全部记录，不含提醒；重新安装后需重新设置提醒。
         </T>
@@ -815,27 +886,13 @@ export default function Settings({
             />
           </View>
         )}
-      </Card>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t("隐私与支持")}
-        onPress={onOpenPrivacy}
-        style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-      >
-        <Card>
-          <View style={row}>
-            <View style={{ flex: 1, gap: 3 }}>
-              <T style={{ fontSize: 18, fontWeight: "700" }}>隐私与支持</T>
-              <T style={{ color: c.muted, fontSize: 13 }}>
-                了解本机数据、备份和软件更新
-              </T>
-            </View>
-            <T raw style={{ color: c.primary, fontSize: 22 }}>
-              ›
-            </T>
-          </View>
-        </Card>
-      </Pressable>
+      </SettingsSection>
+      <SettingsSection title="隐私与支持" busy={busy}>
+        <T style={{ color: c.muted, fontSize: 13 }}>
+          了解本机数据、备份和软件更新
+        </T>
+        <Button label="隐私与支持" secondary onPress={onOpenPrivacy} />
+      </SettingsSection>
       <View style={{ padding: 10, gap: 5 }}>
         <T style={{ color: c.muted, fontSize: 12, textAlign: "center" }}>
           Little Days · 单机离线版

@@ -138,6 +138,7 @@ export default function EntryEditor({
   const [start, setStart] = useState(localFields(entry.start));
   const [end, setEnd] = useState(localFields(initialEnd.current));
   const [hasEnd, setHasEnd] = useState(!!entry.end);
+  const feedEndInitialized = useRef(!!entry.end);
   const [amount, setAmount] = useState(String(entry.amount ?? 120));
   const [weight, setWeight] = useState(
     entry.weight === undefined ? "" : String(entry.weight),
@@ -502,7 +503,26 @@ export default function EntryEditor({
                     {chip(
                       hasEnd ? "✓ 记录结束时间" : "+ 记录结束时间（可选）",
                       hasEnd,
-                      () => setHasEnd(!hasEnd),
+                      () => {
+                        if (!hasEnd && !feedEndInitialized.current) {
+                          try {
+                            const startTime = localISO(start.date, start.time);
+                            setEnd(
+                              localFields(
+                                new Date(
+                                  Date.parse(startTime) + 20 * 60 * 1000,
+                                ).toISOString(),
+                              ),
+                            );
+                            feedEndInitialized.current = true;
+                            setError("");
+                          } catch (err) {
+                            setError((err as Error).message);
+                            return;
+                          }
+                        }
+                        setHasEnd(!hasEnd);
+                      },
                     )}
                   </View>
                 </View>

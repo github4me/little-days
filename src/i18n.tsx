@@ -120,6 +120,17 @@ const english: Record<string, string> = {
   暂不填写: "Not specified",
   保存档案: "Save profile",
   夜间模式: "Night mode",
+  主题: "Theme",
+  "展开{section}": "Expand {section}",
+  "收起{section}": "Collapse {section}",
+  打开宝宝档案: "Open baby profile",
+  "自动（跟随系统）": "Automatic",
+  浅色: "Light",
+  深色: "Dark",
+  "自动跟随设备的系统外观，选择后立即保存。":
+    "Automatic follows your device’s appearance. Changes save immediately.",
+  "默认跟随系统；手动切换后记住你的选择。":
+    "Follows your system until you toggle it. Your choice is then saved.",
   "柔和配色，夜里也舒适": "Softer colors for bedtime.",
   语言: "Language",
   "跟随系统语言，或在这里固定选择显示语言。":
@@ -196,6 +207,19 @@ const english: Record<string, string> = {
     "No account · no server · no sharing · no photo uploads",
   日期按设备当地时区显示和统计: "Dates use your device's local time zone",
   "近 7 天": "Last 7 days",
+  "7 天": "7 days",
+  "2 周": "2 weeks",
+  "1 个月": "1 month",
+  "3 个月": "3 months",
+  "6 个月": "6 months",
+  "近 2 周": "Last 2 weeks",
+  "近 1 个月": "Last month",
+  "近 3 个月": "Last 3 months",
+  "近 6 个月": "Last 6 months",
+  全部记录: "All records",
+  "所选时段没有{kind}记录": "No {kind} records in this period",
+  "每根柱为最多 {count} 天合计；下方可展开每日明细。":
+    "Each bar totals up to {count} days. Expand daily details below.",
   "还没有{kind}记录": "No {kind} records yet",
   "{count} 次喂奶 · {amount} mL · {duration}":
     "{count} feeds · {amount} mL · {duration}",

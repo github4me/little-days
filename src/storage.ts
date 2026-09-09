@@ -72,7 +72,7 @@ export async function loadTheme(): Promise<boolean | null> {
     "SELECT value FROM app_data WHERE key = ?",
     "dark",
   );
-  return row ? row.value === "true" : null;
+  return row?.value === "true" ? true : row?.value === "false" ? false : null;
 }
 export async function loadPlaySelection(): Promise<PlaySelection> {
   const row = await (
@@ -132,7 +132,7 @@ export async function savePlayFavorites(ids: string[]): Promise<void> {
     value,
   );
 }
-export async function saveTheme(dark: boolean) {
+export async function saveTheme(dark: boolean | null) {
   await (
     await db()
   ).runAsync(

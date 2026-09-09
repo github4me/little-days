@@ -63,9 +63,9 @@ export async function loadRecovery(): Promise<State | null> {
 }
 export async function loadTheme(): Promise<boolean | null> {
   const v = localStorage.getItem(KEY + "-dark");
-  return v === null ? null : v === "true";
+  return v === "true" ? true : v === "false" ? false : null;
 }
-export async function saveTheme(dark: boolean) {
+export async function saveTheme(dark: boolean | null) {
   localStorage.setItem(KEY + "-dark", String(dark));
 }
 export async function loadLanguage(): Promise<LanguagePreference | null> {

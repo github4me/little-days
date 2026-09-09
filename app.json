@@ -17,6 +17,9 @@
       "buildNumber": "6",
       "runtimeVersion": {
         "policy": "appVersion"
+      },
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {

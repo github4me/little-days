@@ -1,0 +1,11 @@
+# Keep local dependencies, exports, secrets and working drafts out of EAS uploads.
+node_modules/
+.expo/
+dist/
+dist-ios/
+dist-web/
+*.log
+.env*
+.DS_Store
+.incoming-update/
+docs/FAMILY-SHARING-TECH-PLAN.md
