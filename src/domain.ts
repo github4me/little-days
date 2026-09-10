@@ -35,7 +35,7 @@ export type State = {
 };
 export const initialState: State = {
   schemaVersion: 1,
-  profile: { name: "宝宝", birthDate: "", sex: "unspecified" },
+  profile: { name: "Baby", birthDate: "", sex: "unspecified" },
   entries: [],
 };
 const fail = (message: string): never => {
