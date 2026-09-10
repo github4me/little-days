@@ -474,7 +474,7 @@ function BabyApp({
                     fontWeight: "700",
                   }}
                 >
-                  LITTLE DAYS · 小日子
+                  MY LITTLE DAYS · 我的小日子
                 </T>
                 {tab !== "settings" ? (
                   <T
