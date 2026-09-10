@@ -2,9 +2,21 @@
   "expo": {
     "name": "My Little Days",
     "locales": {
-      "en": { "ios": { "CFBundleDisplayName": "My Little Days" } },
-      "zh-Hans": { "ios": { "CFBundleDisplayName": "小日子" } },
-      "zh-Hant": { "ios": { "CFBundleDisplayName": "小日子" } }
+      "en": {
+        "ios": {
+          "CFBundleDisplayName": "My Little Days"
+        }
+      },
+      "zh-Hans": {
+        "ios": {
+          "CFBundleDisplayName": "小日子"
+        }
+      },
+      "zh-Hant": {
+        "ios": {
+          "CFBundleDisplayName": "小日子"
+        }
+      }
     },
     "slug": "little-days",
     "version": "0.1.1",
@@ -19,7 +31,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.littledays.babylog",
-      "buildNumber": "8",
+      "buildNumber": "9",
       "runtimeVersion": {
         "policy": "appVersion"
       },
