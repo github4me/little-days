@@ -9,7 +9,7 @@ type TranslationValues = Record<string, string | number>;
 // Chinese source text remains the fallback. Keeping translations together makes
 // adding another language a data change rather than a screen-by-screen rewrite.
 const english: Record<string, string> = {
-  "MY LITTLE DAYS · 我的小日子": "MY LITTLE DAYS",
+  "MY LITTLE DAYS · 小日子": "MY LITTLE DAYS",
   今天的小日子: "{name}'s little days",
   "每一天，都记得": "Every day remembered",
   慢慢长大的你: "Growing with you",
