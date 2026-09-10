@@ -1,6 +1,11 @@
 {
   "expo": {
-    "name": "小日子",
+    "name": "My Little Days",
+    "locales": {
+      "en": { "ios": { "CFBundleDisplayName": "My Little Days" } },
+      "zh-Hans": { "ios": { "CFBundleDisplayName": "我的小日子" } },
+      "zh-Hant": { "ios": { "CFBundleDisplayName": "我的小日子" } }
+    },
     "slug": "little-days",
     "version": "0.1.1",
     "orientation": "portrait",
@@ -19,6 +24,8 @@
         "policy": "appVersion"
       },
       "infoPlist": {
+        "CFBundleDevelopmentRegion": "en",
+        "CFBundleAllowMixedLocalizations": true,
         "ITSAppUsesNonExemptEncryption": false
       }
     },

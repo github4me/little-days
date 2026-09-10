@@ -6,6 +6,8 @@ An offline baby-care and growth tracker built with Expo, React Native, and TypeS
 
 ## Features
 
+- **Installed iPhone name:** Chinese system-language preferences show “我的小日子”; English uses “My Little Days”, with English as the fallback for unmatched languages. This native setting requires a new installed build, not only a JavaScript update.
+
 - **Baby profile:** name, birth date, sex, and an optional photo stored on the device. Tap the Home avatar to open the profile settings.
 - **Feeding:** formula, expressed milk, and breastfeeding records; quick milk-volume choices and optional end times. Start a timer without an end time, then tap the animated Stop control on Home to save the session. When adding an end time to a past feed, it initially defaults to 20 minutes after the start and can be edited.
 - **Sleep:** start and stop a sleep session, add past sessions, and resume the timer display after reopening the app.
