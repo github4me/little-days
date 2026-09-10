@@ -493,7 +493,7 @@ await page
   .click();
 await page.getByText("Your data stays with you", { exact: true }).waitFor();
 await page.getByText("Software updates", { exact: true }).waitFor();
-await page.getByText("admin@reticle.com.au", { exact: true }).waitFor();
+await page.getByText("contact@reticle.com.au", { exact: true }).waitFor();
 assert.equal(
   await page
     .getByRole("button", { name: "Contact support", exact: true })

@@ -3,7 +3,7 @@ import { Linking, Pressable, View } from "react-native";
 import { Card, Theme, T, heading, row } from "./ui";
 import { t } from "./i18n";
 
-const supportEmail = "admin@reticle.com.au";
+const supportEmail = "contact@reticle.com.au";
 
 function PrivacySection({
   icon,

@@ -106,6 +106,6 @@ See [Repository Guidelines](AGENTS.md) for contributor conventions.
 
 ## Support and license
 
-Contact [admin@reticle.com.au](mailto:admin@reticle.com.au).
+Contact [contact@reticle.com.au](mailto:contact@reticle.com.au).
 
 Application source is licensed under [0BSD](LICENSE). Consult the [WHO source notes](docs/WHO-SOURCES.md) for the bundled reference data and applicable reuse considerations.
