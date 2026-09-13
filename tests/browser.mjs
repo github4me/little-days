@@ -75,7 +75,7 @@ await page.route("http://little-days.test/**", async (route) => {
 });
 
 await page.goto("http://little-days.test/");
-await page.getByText("宝宝的小日子", { exact: true }).waitFor();
+await page.getByText("Baby的小日子", { exact: true }).waitFor();
 await page.getByRole("button", { name: "打开宝宝档案", exact: true }).click();
 await page.getByRole("button", { name: "收起宝宝档案", exact: true }).waitFor();
 await page.getByRole("button", { name: "保存档案", exact: true }).waitFor();
@@ -705,6 +705,69 @@ await page.getByRole("button", { name: "停止", exact: true }).waitFor();
 await page.getByText("正在喂养", { exact: true }).waitFor();
 await page.getByRole("button", { name: "停止", exact: true }).click();
 await page
+  .getByText(`原选奶量：${runningFeed.amount} mL`, { exact: true })
+  .waitFor();
+assert.equal(
+  await page.evaluate(
+    (id) =>
+      JSON.parse(localStorage.getItem("little-days-v1")).entries.find(
+        (e) => e.id === id,
+      ).feedRunning,
+    runningFeed.id,
+  ),
+  true,
+);
+await page.getByRole("button", { name: "取消，继续喂养", exact: true }).click();
+await page.getByRole("button", { name: "停止", exact: true }).click();
+await page
+  .getByText(`实际奶量：${runningFeed.amount} mL`, { exact: true })
+  .waitFor();
+const stopClickedAt = Date.now();
+await page
+  .getByLabel("奶量滚轮", { exact: true })
+  .evaluate((element, amount) => {
+    element.scrollTop = (amount / 5 + 2) * 44;
+  }, runningFeed.amount);
+await page
+  .getByText(`实际奶量：${runningFeed.amount + 10} mL`, { exact: true })
+  .waitFor();
+await page.getByRole("button", { name: "减少奶量", exact: true }).click();
+await page
+  .getByText(`实际奶量：${runningFeed.amount + 5} mL`, { exact: true })
+  .waitFor();
+await page.getByRole("button", { name: "减少奶量", exact: true }).click();
+await page.getByRole("button", { name: "增加奶量", exact: true }).click();
+await page
+  .getByText(`实际奶量：${runningFeed.amount + 5} mL`, { exact: true })
+  .waitFor();
+await page.waitForTimeout(350); // Let the modal's opening fade finish for visual review.
+await page.screenshot({ path: "D:/Temp/little-days-finish-feed.png" });
+await page.evaluate(() => {
+  const original = Storage.prototype.setItem;
+  Storage.prototype.setItem = function (key, value) {
+    if (key === "little-days-v1") {
+      Storage.prototype.setItem = original;
+      throw new Error("Simulated full storage");
+    }
+    return original.call(this, key, value);
+  };
+});
+await page.getByRole("button", { name: "确认并保存", exact: true }).click();
+await page
+  .getByText("保存失败，请重试；喂养记录尚未结束。", { exact: true })
+  .waitFor();
+assert.equal(
+  await page.evaluate(
+    (id) =>
+      JSON.parse(localStorage.getItem("little-days-v1")).entries.find(
+        (e) => e.id === id,
+      ).feedRunning,
+    runningFeed.id,
+  ),
+  true,
+);
+await page.getByRole("button", { name: "确认并保存", exact: true }).click();
+await page
   .getByRole("button", { name: "＋记录", exact: true })
   .first()
   .waitFor();
@@ -716,6 +779,11 @@ const finishedFeed = await page.evaluate(
   runningFeed.id,
 );
 assert.equal(finishedFeed.feedRunning, undefined);
+assert.equal(finishedFeed.amount, runningFeed.amount + 5);
+assert.ok(
+  Date.parse(finishedFeed.end) <= stopClickedAt + 1000,
+  "end time is captured at Stop, not confirmation",
+);
 assert.equal(finishedFeed.start, runningFeed.start);
 assert.ok(Date.parse(finishedFeed.end) >= Date.parse(finishedFeed.start));
 await page.getByRole("tab", { name: "记录", exact: true }).click();

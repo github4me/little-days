@@ -32,6 +32,8 @@ import Records from "./src/Records";
 import Settings from "./src/Settings";
 import PrivacySupport from "./src/PrivacySupport";
 import FeedStopButton from "./src/FeedStopButton";
+import FinishFeedDialog from "./src/FinishFeedDialog";
+import { finishFeed } from "./src/feedFinish";
 import CareIcon from "./src/CareIcon";
 import PlayLearning from "./src/PlayLearning";
 import { rescheduleAutoFeedReminders } from "./src/reminders";
@@ -158,6 +160,10 @@ function BabyApp({
   const [growthHistoryExpanded, setGrowthHistoryExpanded] = useState(false);
   const [openProfile, setOpenProfile] = useState(false);
   const mainScroll = useRef<ScrollView>(null);
+  const [finishingFeed, setFinishingFeed] = useState<{
+    entry: Entry;
+    stoppedAt: string;
+  } | null>(null);
   function showProfile() {
     setOpenProfile(true);
     setSettingsPage("main");
@@ -746,18 +752,14 @@ function BabyApp({
                           <FeedStopButton
                             disabled={busy}
                             onPress={() =>
-                              void act(async () => {
-                                const finished = {
-                                  ...activeFeed,
-                                  end: new Date(
-                                    Math.max(
-                                      Date.now(),
-                                      Date.parse(activeFeed.start),
-                                    ),
-                                  ).toISOString(),
-                                };
-                                delete finished.feedRunning;
-                                await upsert(finished);
+                              setFinishingFeed({
+                                entry: activeFeed,
+                                stoppedAt: new Date(
+                                  Math.max(
+                                    Date.now(),
+                                    Date.parse(activeFeed.start),
+                                  ),
+                                ).toISOString(),
                               })
                             }
                           />
@@ -1071,6 +1073,23 @@ function BabyApp({
             </View>
           </SafeAreaView>
         </View>
+        {finishingFeed ? (
+          <FinishFeedDialog
+            entry={finishingFeed.entry}
+            stoppedAt={finishingFeed.stoppedAt}
+            onCancel={() => setFinishingFeed(null)}
+            onSave={async (amount) => {
+              const current = stateRef.current?.entries.find(
+                (e) => e.id === finishingFeed.entry.id,
+              );
+              if (!current) throw new Error("喂养计时状态无效");
+              await upsert(
+                finishFeed(current, finishingFeed.stoppedAt, amount),
+              );
+              setFinishingFeed(null);
+            }}
+          />
+        ) : null}
         {editor ? (
           <EntryEditor
             entry={editor}

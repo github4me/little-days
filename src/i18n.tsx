@@ -22,6 +22,22 @@ const english: Record<string, string> = {
   喂养: "Feed",
   开始: "Start",
   停止: "Stop",
+  确认结束喂养: "Finish feed",
+  "结束时间：{time} · 时长：{duration}":
+    "Ended at {time} · Duration: {duration}",
+  "原选奶量：{amount} mL": "Originally selected: {amount} mL",
+  "实际奶量：{amount} mL": "Actual amount: {amount} mL",
+  滚动选择实际喝下的奶量: "Scroll to select the amount actually drunk",
+  奶量滚轮: "Milk amount wheel",
+  减少奶量: "Decrease amount",
+  增加奶量: "Increase amount",
+  确认并保存: "Confirm and save",
+  正在保存: "Saving…",
+  "取消，继续喂养": "Cancel and continue feeding",
+  "亲喂仅记录时长，不估算奶量。":
+    "Breastfeeding records duration only, not estimated volume.",
+  "保存失败，请重试；喂养记录尚未结束。":
+    "Could not save. Try again; the feeding record is still running.",
   正在喂养: "Feeding now",
   喂养计时状态无效: "Invalid feeding timer state",
   请先停止正在进行的喂养: "Stop the current feed before starting another.",
